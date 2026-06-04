@@ -128,7 +128,7 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 </head>
 <body>
 <div id="app">
-<div class="hdr"><h1>DEADLOCK</h1><p>The Dudemen's Study Guide &middot; 38 Heroes</p></div>
+<div class="hdr"><h1>DEADLOCK</h1><p>The Dudemen's Study Guide &middot; 38 Heroes</p><div id="global-sync" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;margin-top:4px;letter-spacing:1px">● connecting...</div></div>
 <div id="p0">
   <div class="chalk-wrap">
     <div class="chalk-title">CURRENT FOCUS</div>
@@ -177,7 +177,9 @@ let binData = {notes:{}, flags:[], chapenis_notes:{}, puspus_notes:{}, comments:
 // ── JSONBin ───────────────────────────────────────────────────────────────
 async function loadBin() {
   try {
-    const r = await fetch(BIN_URL+'/latest', {headers:{'X-Master-Key':API_KEY,'X-Bin-Meta':'false'}});
+    const r = await fetch(BIN_URL+'/latest', {
+      headers:{'X-Master-Key':API_KEY,'X-Access-Key':API_KEY,'X-Bin-Meta':'false'}
+    });
     if(r.ok) {
       binData = await r.json();
       if(!binData.notes) binData.notes={};
@@ -187,14 +189,39 @@ async function loadBin() {
       if(!binData.comments) binData.comments={};
       if(!binData.goals) binData.goals={};
       if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
+      setSyncStatus('connected', '● connected');
+    } else {
+      const err = await r.text();
+      console.error('JSONBin load failed:', r.status, err);
+      setSyncStatus('error', '● sync error '+r.status);
     }
-  } catch(e) { console.warn('Could not load bin:', e); }
+  } catch(e) {
+    console.warn('Could not load bin:', e);
+    setSyncStatus('error', '● offline');
+  }
 }
 async function saveBin() {
   try {
-    const r = await fetch(BIN_URL, {method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':API_KEY}, body:JSON.stringify(binData)});
+    const r = await fetch(BIN_URL, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY,'X-Access-Key':API_KEY},
+      body:JSON.stringify(binData)
+    });
+    if(!r.ok) {
+      const err = await r.text();
+      console.error('JSONBin save failed:', r.status, err);
+    }
     return r.ok;
-  } catch(e) { return false; }
+  } catch(e) {
+    console.error('JSONBin save error:', e);
+    return false;
+  }
+}
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('global-sync');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = state==='connected' ? '#4caf6a' : state==='error' ? '#E24B4A' : '#888';
 }
 
 // ── Password ──────────────────────────────────────────────────────────────
@@ -295,13 +322,12 @@ function makeRow(color, text, hero, type, itemName) {
 }
 
 // ── Notes ─────────────────────────────────────────────────────────────────
-async function saveNote(hero, key) {
-  const k=key||'notes';
-  if(!binData[k]) binData[k]={};
-  const ta=document.getElementById('notes-ta-'+(key||'chairman'));
-  if(!ta) return;
-  binData[k][hero]=ta.value;
-  const sync=document.getElementById('nsync-'+(key||'chairman'));
+async function saveNote(hero, storageKey, elemId) {
+  if(!binData[storageKey]) binData[storageKey]={};
+  const ta=document.getElementById('notes-ta-'+elemId);
+  if(!ta) { console.error('saveNote: textarea not found: notes-ta-'+elemId); return; }
+  binData[storageKey][hero]=ta.value;
+  const sync=document.getElementById('nsync-'+elemId);
   if(sync) sync.textContent='saving...';
   const ok=await saveBin();
   if(sync) sync.textContent=ok?'saved ✓':'error ✗';
@@ -322,7 +348,7 @@ function notesHTML(hero) {
     </div>
     ${unlocked
       ?`<textarea class="notes-edit" id="notes-ta-chairman" placeholder="Write your notes on ${hero} here...">${note}</textarea>
-        <button class="notes-save" onclick="saveNote('${safe}','notes')">Save</button>`
+        <button class="notes-save" onclick="saveNote('${safe}','notes','chairman')">Save</button>`
       :`<div class="notes-content${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
   </div>`;
 }
@@ -361,7 +387,7 @@ function dudeNotesHTML(hero) {
       </div>
       ${isOpen
         ?`<textarea class="notes-edit" id="notes-ta-${safeKey}" placeholder="Write your notes on ${hero} here...">${note}</textarea>
-          <button class="notes-save" onclick="saveNote('${safe}','${key}')">Save</button>`
+          <button class="notes-save" onclick="saveNote('${safe}','${key}','${safeKey}')">Save</button>`
         :`<div class="dude-note-text${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
       ${chairComment}
     </div>`;
