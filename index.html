@@ -97,44 +97,46 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .modal-ok{background:var(--or);border-color:var(--or);color:#fff}
 .modal-err{font-size:11px;color:var(--re);margin-top:6px;min-height:16px}
 
-.chat-wrap{background:var(--sf);border:.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:14px}
-.chat-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;color:var(--mu);margin-bottom:10px}
-.chat-msgs{max-height:200px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
-.chat-msg{background:var(--cd);border:.5px solid var(--bd);border-radius:7px;padding:7px 10px;font-size:12px;line-height:1.5}
-.chat-msg .cm-who{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;margin-bottom:2px}
-.chat-msg .cm-text{color:var(--tx)}
-.chat-msg .cm-time{font-size:9px;color:var(--di);margin-top:2px;font-family:'IBM Plex Mono',monospace}
-.chat-msg .cm-del{float:right;background:none;border:none;color:var(--di);cursor:pointer;font-size:11px;padding:0;margin-left:6px}
-.chat-msg .cm-del:hover{color:var(--re)}
-.chat-empty{color:var(--di);font-style:italic;font-size:12px;text-align:center;padding:12px 0}
-.chat-form{display:flex;gap:6px;align-items:center}
-.chat-who-sel{padding:7px 8px;background:var(--cd);border:.5px solid var(--bd);border-radius:7px;color:var(--tx);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;cursor:pointer;flex-shrink:0}
-.chat-who-sel:focus{border-color:var(--or)}
-.chat-input{flex:1;padding:7px 10px;background:var(--cd);border:.5px solid var(--bd);border-radius:7px;color:var(--tx);font-size:12px;font-family:'Barlow',sans-serif;outline:none}
-.chat-input:focus{border-color:var(--or)}
-.chat-input::placeholder{color:var(--di)}
-.chat-send{padding:7px 14px;background:var(--or);border:none;border-radius:7px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;flex-shrink:0}
-.chat-send:hover{opacity:.85}
-.chat-locked{font-size:11px;color:var(--di);font-family:'IBM Plex Mono',monospace;text-align:center;padding:4px 0}
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&display=swap');
+.chalk-wrap{background:#2d4a2d;border:3px solid #5a3e28;border-radius:4px;padding:16px;margin-bottom:14px;box-shadow:inset 0 0 40px rgba(0,0,0,.4),2px 2px 8px rgba(0,0,0,.6);position:relative}
+.chalk-wrap::before{content:'';position:absolute;inset:3px;border:1px solid rgba(255,255,255,.06);border-radius:2px;pointer-events:none}
+.chalk-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:4px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:14px;text-shadow:0 0 8px rgba(255,255,255,.15)}
+.chalk-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.1)}
+.chalk-col{background:#2d4a2d;padding:12px 10px}
+.chalk-col-name{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:rgba(255,255,255,.6);margin-bottom:10px;text-align:center;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);text-shadow:0 0 6px rgba(255,255,255,.1)}
+.chalk-goal{font-family:'Caveat',cursive;font-size:18px;color:rgba(255,255,255,.88);line-height:1.4;text-shadow:0 0 3px rgba(255,255,255,.2);min-height:28px;word-break:break-word}
+.chalk-goal.empty{color:rgba(255,255,255,.2);font-style:italic;font-size:15px}
+.chalk-done-btn{margin-top:10px;background:none;border:1px dashed rgba(255,255,255,.25);border-radius:3px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;cursor:pointer;letter-spacing:1px;width:100%;transition:all .15s}
+.chalk-done-btn:hover{border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.7)}
+.chalk-edit-area{width:100%;background:transparent;border:none;border-bottom:1px dashed rgba(255,255,255,.3);color:rgba(255,255,255,.9);font-family:'Caveat',cursive;font-size:18px;outline:none;resize:none;line-height:1.4;text-shadow:0 0 3px rgba(255,255,255,.2);padding:2px 0}
+.chalk-edit-area::placeholder{color:rgba(255,255,255,.2)}
+.chalk-btns{display:flex;gap:6px;margin-top:8px}
+.chalk-save{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:3px;color:rgba(255,255,255,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px;cursor:pointer;letter-spacing:1px;transition:all .15s}
+.chalk-save:hover{background:rgba(255,255,255,.2);color:#fff}
+.chalk-cancel{flex:1;background:none;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.3);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px;cursor:pointer;letter-spacing:1px}
+.chalk-lock{background:none;border:none;color:rgba(255,255,255,.3);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;padding:0;margin-top:6px;display:block;text-align:center;width:100%;letter-spacing:1px;transition:color .15s}
+.chalk-lock:hover{color:rgba(255,255,255,.6)}
+.chalk-lock.editing{color:rgba(232,98,42,.8)}
+.chalk-completed{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+.chalk-completed-title{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:3px;color:rgba(255,255,255,.3);margin-bottom:8px}
+.chalk-completed-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.chalk-completed-col{}
+.chalk-completed-name{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.25);margin-bottom:4px}
+.chalk-completed-item{font-family:'Caveat',cursive;font-size:14px;color:rgba(255,255,255,.35);line-height:1.4;text-decoration:line-through;padding:2px 0;display:flex;align-items:flex-start;gap:5px}
+.chalk-completed-item::before{content:'✓';font-family:'IBM Plex Mono',monospace;font-size:10px;flex-shrink:0;margin-top:2px}
 </style>
 </head>
 <body>
 <div id="app">
 <div class="hdr"><h1>DEADLOCK</h1><p>The Dudemen's Study Guide &middot; 38 Heroes</p></div>
 <div id="p0">
-  <div class="chat-wrap">
-    <div class="chat-title">💬 Dudemen Chat</div>
-    <div class="chat-msgs" id="chat-msgs"><div class="chat-empty">No messages yet — say something!</div></div>
-    <div class="chat-form">
-      <select class="chat-who-sel" id="chat-who" onchange="renderChat()">
-        <option value="chairman">Chairman</option>
-        <option value="chapin">Chapin</option>
-        <option value="rob">Rob</option>
-      </select>
-      <input class="chat-input" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
-      <button class="chat-send" onclick="sendChat()">Send</button>
+  <div class="chalk-wrap">
+    <div class="chalk-title">CURRENT FOCUS</div>
+    <div class="chalk-cols" id="chalk-cols"></div>
+    <div class="chalk-completed" id="chalk-completed" style="display:none">
+      <div class="chalk-completed-title">Completed Goals</div>
+      <div class="chalk-completed-cols" id="chalk-completed-cols"></div>
     </div>
-    <div class="chat-locked" id="chat-lock-msg"></div>
   </div>
   <input type="text" id="srch" placeholder="Search heroes..." oninput="renderGrid()">
   <div class="grid" id="grid"></div>
@@ -183,7 +185,8 @@ async function loadBin() {
       if(!binData.chapenis_notes) binData.chapenis_notes={};
       if(!binData.puspus_notes) binData.puspus_notes={};
       if(!binData.comments) binData.comments={};
-      if(!binData.chat) binData.chat=[];
+      if(!binData.goals) binData.goals={};
+      if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
     }
   } catch(e) { console.warn('Could not load bin:', e); }
 }
@@ -217,7 +220,7 @@ function checkPw() {
     if(modalTarget==='puspus')   pusPusUnlocked=true;
     closeModal();
     if(sel !== null) pick(H.findIndex(h=>h[0]===sel));
-    renderChat();
+    renderChalk();
   } else {
     document.getElementById('pw-err').textContent = 'Incorrect password.';
   }
@@ -246,11 +249,17 @@ function flagAbility(idx, btn) {
   const hero=window.__abHero, text=window.__abs[idx];
   if(hero&&text) toggleFlag(hero,'ability',text,btn);
 }
+function toggleFlagByRow(idx, btn) {
+  if(!window.__rowData||idx>=window.__rowData.length) return;
+  const {hero,type,text}=window.__rowData[idx];
+  toggleFlag(hero,type,text,btn);
+}
 function flagsPanelHTML() {
   if(!binData.flags||!binData.flags.length) return '';
+  window.__flags = binData.flags;
   return `<div class="flags-panel">
     <div class="flags-title">⚑ Flagged as Incorrect (${binData.flags.length})</div>
-    ${binData.flags.map(f=>`<div class="flag-item"><div class="fi-text"><strong>${f.hero}</strong> · ${f.type}<br>${f.text}</div><button class="fi-remove" onclick="removeFlag(${JSON.stringify(f.key)})">✕</button></div>`).join('')}
+    ${binData.flags.map((f,fi)=>`<div class="flag-item"><div class="fi-text"><strong>${f.hero}</strong> · ${f.type}<br>${f.text}</div><button class="fi-remove" onclick="removeFlagByIndex(${fi})">✕</button></div>`).join('')}
     <button class="copy-flags" onclick="copyFlags()">Copy all flags to clipboard</button>
   </div>`;
 }
@@ -259,6 +268,11 @@ async function removeFlag(key) {
   await saveBin();
   if(sel!==null) pick(H.findIndex(h=>h[0]===sel));
 }
+async function removeFlagByIndex(idx) {
+  if(!window.__flags||idx>=window.__flags.length) return;
+  const key = window.__flags[idx].key;
+  await removeFlag(key);
+}
 function copyFlags() {
   const text=binData.flags.map(f=>`[${f.hero}] (${f.type}) ${f.text}`).join('\n');
   navigator.clipboard.writeText(text).then(()=>alert('Flags copied! Paste them to share with Claude.'));
@@ -266,6 +280,9 @@ function copyFlags() {
 
 // ── Item tooltip ──────────────────────────────────────────────────────────
 function makeRow(color, text, hero, type, itemName) {
+  if(!window.__rowData) window.__rowData=[];
+  const ri = window.__rowData.length;
+  window.__rowData.push({hero, type, text});
   const flagged=isFlagged(hero,type,text);
   const tip=itemName&&ITEM_DESCS[itemName]?`<span class="tip">${ITEM_DESCS[itemName]}</span>`:'';
   const dt=itemName?'data-tip="1"':'';
@@ -273,7 +290,7 @@ function makeRow(color, text, hero, type, itemName) {
     <div class="dot" style="background:${color}"></div>
     <div style="flex:1;font-size:11px">${text}${tip}</div>
     <button class="flag-btn${flagged?' flagged':''}" title="${flagged?'Remove flag':'Flag as incorrect'}"
-      onclick="toggleFlag('${hero.replace(/'/g,"\'")}',${JSON.stringify(type)},${JSON.stringify(text)},this)">⚑</button>
+      onclick="toggleFlagByRow(${ri},this)">⚑</button>
   </div>`;
 }
 
@@ -367,68 +384,102 @@ async function deleteComment(noteKey, hero, idx) {
 }
 
 
-// ── Chat ──────────────────────────────────────────────────────────────────
-const WHO_COLORS = {chairman:'var(--or)', chapin:'var(--bl)', rob:'var(--gr)'};
-const WHO_LABELS = {chairman:'Chairman', chapin:'Chapin', rob:'Rob'};
-const WHO_PASS   = {chairman:EDITOR_PASSWORD, chapin:CHAPENIS_PASSWORD, rob:PUSPUS_PASSWORD};
+// ── Chalkboard Goals ──────────────────────────────────────────────────────
+const CHALK_MEMBERS = [
+  {key:'chairman', label:'Chairman', modalTarget:'chairman'},
+  {key:'chapin',   label:'Chapin',   modalTarget:'chapenis'},
+  {key:'rob',      label:'Rob',      modalTarget:'puspus'},
+];
 
-function chatUnlocked(who) {
-  if(who==='chairman') return unlocked;
-  if(who==='chapin')   return chapUnlocked;
-  if(who==='rob')      return pusPusUnlocked;
+function chalkUnlocked(key) {
+  if(key==='chairman') return unlocked;
+  if(key==='chapin')   return chapUnlocked;
+  if(key==='rob')      return pusPusUnlocked;
   return false;
 }
 
-function renderChat() {
-  const msgs = (binData.chat||[]);
-  const box = document.getElementById('chat-msgs');
-  if(!box) return;
-  if(!msgs.length) {
-    box.innerHTML = '<div class="chat-empty">No messages yet — say something!</div>';
-  } else {
-    box.innerHTML = msgs.map((m,i)=>`
-      <div class="chat-msg">
-        <div class="cm-who" style="color:${WHO_COLORS[m.who]||'var(--mu)'}">${WHO_LABELS[m.who]||m.who}
-          ${(m.who==='chairman'&&unlocked)||(m.who==='chapin'&&chapUnlocked)||(m.who==='rob'&&pusPusUnlocked)
-            ?`<button class="cm-del" onclick="deleteChat(${i})">✕</button>`:''}
-        </div>
-        <div class="cm-text">${m.text}</div>
-        <div class="cm-time">${new Date(m.ts).toLocaleString()}</div>
-      </div>`).join('');
-    // auto-scroll to bottom
-    box.scrollTop = box.scrollHeight;
-  }
-  // update lock hint
-  const sel = document.getElementById('chat-who');
-  const lockMsg = document.getElementById('chat-lock-msg');
-  if(sel && lockMsg) {
-    const who = sel.value;
-    lockMsg.textContent = chatUnlocked(who) ? '' : `Unlock as ${WHO_LABELS[who]} to send messages`;
+let chalkEditing = {}; // {key: true/false}
+
+function renderChalk() {
+  if(!binData.goals) binData.goals={};
+  if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
+  const cols = document.getElementById('chalk-cols');
+  const compWrap = document.getElementById('chalk-completed');
+  const compCols = document.getElementById('chalk-completed-cols');
+  if(!cols) return;
+
+  cols.innerHTML = CHALK_MEMBERS.map(m => {
+    const goal = (binData.goals[m.key]||'').trim();
+    const isUnlocked = chalkUnlocked(m.key);
+    const isEditing = chalkEditing[m.key] && isUnlocked;
+    return `<div class="chalk-col">
+      <div class="chalk-col-name">${m.label}</div>
+      ${isEditing
+        ? `<textarea class="chalk-edit-area" id="chalk-ta-${m.key}" rows="3" placeholder="What are you working on?">${goal}</textarea>
+           <div class="chalk-btns">
+             <button class="chalk-save" onclick="saveGoal('${m.key}')">Save</button>
+             <button class="chalk-cancel" onclick="cancelGoalEdit('${m.key}')">Cancel</button>
+           </div>`
+        : `<div class="chalk-goal${!goal?' empty':''}">${goal||'Nothing yet...'}</div>
+           ${goal && isUnlocked
+             ? `<button class="chalk-done-btn" onclick="completeGoal('${m.key}')">☐ Mark complete</button>`
+             : ''}`
+      }
+      <button class="chalk-lock${isUnlocked?' editing':''}" onclick="${isUnlocked ? `startGoalEdit('${m.key}')` : `openModal('${m.modalTarget}')`}">
+        ${isUnlocked ? (isEditing ? '✏️ editing' : '✏️ edit goal') : '🔒 unlock to edit'}
+      </button>
+    </div>`;
+  }).join('');
+
+  // Completed goals section
+  const allCompleted = CHALK_MEMBERS.map(m => (binData.completed_goals[m.key]||[]));
+  const hasAny = allCompleted.some(a=>a.length>0);
+  compWrap.style.display = hasAny ? 'block' : 'none';
+  if(hasAny) {
+    compCols.innerHTML = CHALK_MEMBERS.map((m,mi) => {
+      const items = binData.completed_goals[m.key]||[];
+      return `<div class="chalk-completed-col">
+        <div class="chalk-completed-name">${m.label}</div>
+        ${items.map(g=>`<div class="chalk-completed-item">${g}</div>`).join('')}
+        ${items.length&&chalkUnlocked(m.key)?`<button style="background:none;border:none;color:rgba(255,255,255,.2);font-size:10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;padding:4px 0;letter-spacing:1px" onclick="clearCompleted('${m.key}')">clear</button>`:''}
+      </div>`;
+    }).join('');
   }
 }
 
-async function sendChat() {
-  const whoEl = document.getElementById('chat-who');
-  const inputEl = document.getElementById('chat-input');
-  if(!whoEl||!inputEl) return;
-  const who = whoEl.value;
-  const text = inputEl.value.trim();
-  if(!text) return;
-  if(!chatUnlocked(who)) {
-    openModal(who==='chapin'?'chapenis':who);
-    return;
-  }
-  if(!binData.chat) binData.chat=[];
-  binData.chat.push({who, text, ts:new Date().toISOString()});
-  inputEl.value='';
-  renderChat();
+function startGoalEdit(key) {
+  chalkEditing[key] = true;
+  renderChalk();
+  const ta = document.getElementById('chalk-ta-'+key);
+  if(ta) { ta.focus(); ta.selectionStart = ta.value.length; }
+}
+function cancelGoalEdit(key) {
+  chalkEditing[key] = false;
+  renderChalk();
+}
+async function saveGoal(key) {
+  const ta = document.getElementById('chalk-ta-'+key);
+  if(!ta) return;
+  if(!binData.goals) binData.goals={};
+  binData.goals[key] = ta.value.trim();
+  chalkEditing[key] = false;
+  renderChalk();
   await saveBin();
 }
-
-async function deleteChat(idx) {
-  if(!binData.chat) return;
-  binData.chat.splice(idx,1);
-  renderChat();
+async function completeGoal(key) {
+  const goal = (binData.goals[key]||'').trim();
+  if(!goal) return;
+  if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
+  if(!binData.completed_goals[key]) binData.completed_goals[key]=[];
+  binData.completed_goals[key].push(goal);
+  binData.goals[key] = '';
+  renderChalk();
+  await saveBin();
+}
+async function clearCompleted(key) {
+  if(!binData.completed_goals) return;
+  binData.completed_goals[key]=[];
+  renderChalk();
   await saveBin();
 }
 
@@ -446,6 +497,7 @@ function renderGrid() {
 // ── Hero detail ───────────────────────────────────────────────────────────
 function pick(i) {
   if(i<0||i>=H.length) return;
+  window.__rowData=[];
   sel=H[i][0]; renderGrid();
   const [n,r,col,co,st,it,tip,ab]=H[i];
   window.__abHero=n; window.__abs=ab;
@@ -489,7 +541,7 @@ function pick(i) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-loadBin().then(()=>{ renderGrid(); renderChat(); });
+loadBin().then(()=>{ renderGrid(); renderChalk(); });
 </script>
 </body>
 </html>
