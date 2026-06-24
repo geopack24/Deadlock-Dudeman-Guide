@@ -21,6 +21,7 @@ input[type=text]::placeholder,input[type=password]::placeholder{color:var(--di)}
 .hc{border:.5px solid var(--bd);border-radius:8px;overflow:hidden;cursor:pointer;background:var(--sf);transition:all .12s}
 .hc:hover{border-color:var(--b2);transform:translateY(-1px)}
 .hc.sel{border-color:var(--or);box-shadow:0 0 0 1px var(--or)}
+.hc.noted{border-color:#d4a017;box-shadow:0 0 0 1px #d4a017,0 0 8px rgba(212,160,23,.35)}
 .hc img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
 .hc .nm{font-size:9px;font-weight:500;padding:3px 4px 2px;line-height:1.2}
 .hc .rl{font-size:8px;color:var(--mu);font-family:'IBM Plex Mono',monospace;padding-bottom:3px}
@@ -566,7 +567,7 @@ function renderGrid() {
   const q=(document.getElementById('srch').value||'').toLowerCase();
   const list=H.filter(h=>h[0].toLowerCase().includes(q)||h[1].toLowerCase().includes(q));
   document.getElementById('grid').innerHTML=list.map(h=>`
-    <div class="hc${sel===h[0]?' sel':''}" onclick="pick(${H.indexOf(h)})">
+    <div class="hc${sel===h[0]?' sel':''}${(binData.notes&&binData.notes[h[0]]&&binData.notes[h[0]].trim())?' noted':''}" onclick="pick(${H.indexOf(h)})">
       <img src="${IMGS[h[0]]||''}" alt="${h[0]}">
       <div class="nm">${h[0]}</div><div class="rl">${h[1]}</div>
     </div>`).join('');
