@@ -189,6 +189,7 @@ async function loadBin() {
       if(!binData.comments) binData.comments={};
       if(!binData.goals) binData.goals={};
       if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
+      if(!binData.goal_completed_at) binData.goal_completed_at={};
       setSyncStatus('connected', '● connected');
     } else {
       const err = await r.text();
