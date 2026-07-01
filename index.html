@@ -463,10 +463,17 @@ async function deleteComment(noteKey, hero, idx) {
 function getPhotoTier(key) {
   const completedTs = binData.goal_completed_at && binData.goal_completed_at[key];
   const setTs = binData.goal_set_at && binData.goal_set_at[key];
+  const hasGoal = binData.goals && (binData.goals[key]||'').trim();
+
+  // God tier: completed a goal less than 5 days ago
   if(completedTs) {
     const d = (Date.now() - new Date(completedTs).getTime()) / 86400000;
     if(d < 5) return 'god';
   }
+
+  // If they have a goal set but no timestamp at all = they've been ignoring it = shit tier
+  if(hasGoal && !setTs && !completedTs) return 'shit';
+
   const baseline = completedTs && setTs
     ? (new Date(completedTs) > new Date(setTs) ? completedTs : setTs)
     : (completedTs || setTs);
