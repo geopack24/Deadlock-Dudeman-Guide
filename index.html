@@ -125,6 +125,10 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .chalk-completed-name{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.25);margin-bottom:4px}
 .chalk-completed-item{font-family:'Caveat',cursive;font-size:14px;color:rgba(255,255,255,.35);line-height:1.4;text-decoration:line-through;padding:2px 0;display:flex;align-items:flex-start;gap:5px}
 .chalk-completed-item::before{content:'✓';font-family:'IBM Plex Mono',monospace;font-size:10px;flex-shrink:0;margin-top:2px}
+
+.dudephoto-wrap{text-align:center;margin-bottom:10px;position:relative}
+.dudephoto-wrap img{width:110px;height:110px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 3px;border:3px solid rgba(255,255,255,.15);transition:transform .2s,box-shadow .2s;cursor:zoom-in}
+.dudephoto-wrap img:hover{transform:scale(2.8);z-index:99;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.8)}
 </style>
 </head>
 <body>
@@ -134,7 +138,7 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
   <div class="chalk-wrap">
     <div class="chalk-title">CURRENT FOCUS</div>
     <div class="chalk-cols" id="chalk-cols"></div>
-    ${unlocked ? '<div style="text-align:center;padding:6px 0"><button onclick="setInitialTiers()" style="background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.3);font-family:monospace;font-size:9px;padding:2px 10px;cursor:pointer;letter-spacing:1px">⚙ set initial tiers</button></div>' : ''}
+  <div id="chalk-setup"></div>
   <div class="chalk-completed" id="chalk-completed" style="display:none">
       <div class="chalk-completed-title">Completed Goals</div>
       <div class="chalk-completed-cols" id="chalk-completed-cols"></div>
@@ -476,13 +480,14 @@ function memberPhotoHTML(key) {
   if(!p) return '';
   const tier = getPhotoTier(key);
   const src = p[tier] || p.normal;
-  const godStyle = tier==='god' ? 'border-color:#d4a017;box-shadow:0 0 12px rgba(212,160,23,.5)' : '';
-  const shitStyle = tier==='shit' ? 'border-color:#E24B4A;box-shadow:0 0 12px rgba(226,75,74,.4)' : '';
+  const borderStyle = tier==='god'  ? 'border-color:#d4a017;box-shadow:0 0 12px rgba(212,160,23,.5)'
+                    : tier==='shit' ? 'border-color:#E24B4A;box-shadow:0 0 12px rgba(226,75,74,.4)'
+                    : '';
   const lbl = tier==='god'  ? '<div style="font-size:11px;letter-spacing:2px;color:#d4a017;margin-top:3px">🌟 S TIER</div>'
              : tier==='shit' ? '<div style="font-size:11px;letter-spacing:2px;color:#E24B4A;margin-top:3px">💩 SHIT TIER</div>'
              : '';
-  return `<div style="text-align:center;margin-bottom:10px">
-    <img src="${src}" style="width:90px;height:90px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 3px;border:3px solid rgba(255,255,255,.15);${godStyle}${shitStyle}">
+  return `<div class="dudephoto-wrap">
+    <img src="${src}" style="${borderStyle}">
     ${lbl}
   </div>`;
 }
@@ -551,6 +556,11 @@ function renderChalk() {
 
   // Completed goals section
   const allCompleted = CHALK_MEMBERS.map(m => (binData.completed_goals[m.key]||[]));
+  // Setup button for Chairman only
+  const setupEl = document.getElementById('chalk-setup');
+  if(setupEl) setupEl.innerHTML = unlocked
+    ? '<div style="text-align:center;padding:4px 0"><button onclick="setInitialTiers()" style="background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.3);font-family:monospace;font-size:9px;padding:2px 10px;cursor:pointer;letter-spacing:1px">⚙ set initial tiers</button></div>'
+    : '';
   const hasAny = allCompleted.some(a=>a.length>0);
   compWrap.style.display = hasAny ? 'block' : 'none';
   if(hasAny) {
