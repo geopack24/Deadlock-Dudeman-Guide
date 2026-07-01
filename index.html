@@ -134,7 +134,8 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
   <div class="chalk-wrap">
     <div class="chalk-title">CURRENT FOCUS</div>
     <div class="chalk-cols" id="chalk-cols"></div>
-    <div class="chalk-completed" id="chalk-completed" style="display:none">
+    ${unlocked ? '<div style="text-align:center;padding:6px 0"><button onclick="setInitialTiers()" style="background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.15);border-radius:4px;color:rgba(255,255,255,.3);font-family:monospace;font-size:9px;padding:2px 10px;cursor:pointer;letter-spacing:1px">⚙ set initial tiers</button></div>' : ''}
+  <div class="chalk-completed" id="chalk-completed" style="display:none">
       <div class="chalk-completed-title">Completed Goals</div>
       <div class="chalk-completed-cols" id="chalk-completed-cols"></div>
     </div>
@@ -193,6 +194,7 @@ async function loadBin() {
       if(!binData.goals) binData.goals={};
       if(!binData.completed_goals) binData.completed_goals={chairman:[],chapin:[],rob:[]};
       if(!binData.goal_completed_at) binData.goal_completed_at={};
+      if(!binData.goal_set_at) binData.goal_set_at={};
       setSyncStatus('connected', '● connected');
     } else {
       const err = await r.text();
@@ -257,6 +259,14 @@ function checkPw() {
   }
 }
 function lockNotes(target) {
+  const idMap   = {chairman:'chairman', chapenis:'chapenis', puspus:'puspus'};
+  const keyMap  = {chairman:'notes', chapenis:'chapenis_notes', puspus:'puspus_notes'};
+  const elemId  = idMap[target];
+  const storeKey = keyMap[target];
+  if(elemId && storeKey && sel !== null) {
+    const ta = document.getElementById('notes-ta-'+elemId);
+    if(ta) saveNote(H.find(h=>h[0]===sel)[0], storeKey, elemId);
+  }
   if(!target||target==='chairman') unlocked=false;
   if(target==='chapenis') chapUnlocked=false;
   if(target==='puspus')   pusPusUnlocked=false;
@@ -344,6 +354,17 @@ function makeRow(color, text, hero, type, itemName) {
   </div>`;
 }
 
+
+// ── Autosave ──────────────────────────────────────────────────────────────
+const _saveTimers = {};
+function autoSave(hero, storageKey, elemId) {
+  const timerKey = storageKey + '_' + hero;
+  clearTimeout(_saveTimers[timerKey]);
+  const sync = document.getElementById('nsync-' + elemId);
+  if(sync) sync.textContent = 'typing...';
+  _saveTimers[timerKey] = setTimeout(() => saveNote(hero, storageKey, elemId), 1200);
+}
+
 // ── Notes ─────────────────────────────────────────────────────────────────
 async function saveNote(hero, storageKey, elemId) {
   if(!binData[storageKey]) binData[storageKey]={};
@@ -370,7 +391,7 @@ function notesHTML(hero) {
       </div>
     </div>
     ${unlocked
-      ?`<textarea class="notes-edit" id="notes-ta-chairman" placeholder="Write your notes on ${hero} here...">${note}</textarea>
+      ?`<textarea class="notes-edit" id="notes-ta-chairman" placeholder="Write your notes on ${hero} here..." oninput="autoSave('${safe}','notes','chairman')">${note}</textarea>
         <button class="notes-save" onclick="saveNote('${safe}','notes','chairman')">Save</button>`
       :`<div class="notes-content${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
   </div>`;
@@ -409,7 +430,7 @@ function dudeNotesHTML(hero) {
         </div>
       </div>
       ${isOpen
-        ?`<textarea class="notes-edit" id="notes-ta-${safeKey}" placeholder="Write your notes on ${hero} here...">${note}</textarea>
+        ?`<textarea class="notes-edit" id="notes-ta-${safeKey}" placeholder="Write your notes on ${hero} here..." oninput="autoSave('${safe}','${key}','${safeKey}')">${note}</textarea>
           <button class="notes-save" onclick="saveNote('${safe}','${key}','${safeKey}')">Save</button>`
         :`<div class="dude-note-text${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
       ${chairComment}
@@ -436,11 +457,17 @@ async function deleteComment(noteKey, hero, idx) {
 
 // ── Shame photo tiers ─────────────────────────────────────────────────────
 function getPhotoTier(key) {
-  if(!binData.goal_completed_at) return 'normal';
-  const ts = binData.goal_completed_at[key];
-  if(!ts) return 'normal';
-  const days = (Date.now() - new Date(ts).getTime()) / (1000*60*60*24);
-  if(days < 5)  return 'god';
+  const completedTs = binData.goal_completed_at && binData.goal_completed_at[key];
+  const setTs = binData.goal_set_at && binData.goal_set_at[key];
+  if(completedTs) {
+    const d = (Date.now() - new Date(completedTs).getTime()) / 86400000;
+    if(d < 5) return 'god';
+  }
+  const baseline = completedTs && setTs
+    ? (new Date(completedTs) > new Date(setTs) ? completedTs : setTs)
+    : (completedTs || setTs);
+  if(!baseline) return 'normal';
+  const days = (Date.now() - new Date(baseline).getTime()) / 86400000;
   if(days < 10) return 'normal';
   return 'shit';
 }
@@ -458,6 +485,20 @@ function memberPhotoHTML(key) {
     <img src="${src}" style="width:90px;height:90px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 3px;border:3px solid rgba(255,255,255,.15);${godStyle}${shitStyle}">
     ${lbl}
   </div>`;
+}
+
+
+// ── One-time tier initializer ─────────────────────────────────────────────
+async function setInitialTiers() {
+  if(!confirm('Set Chairman=S tier, Chapin=normal, Rob=shit tier?')) return;
+  if(!binData.goal_completed_at) binData.goal_completed_at={};
+  if(!binData.goal_set_at) binData.goal_set_at={};
+  binData.goal_completed_at['chairman'] = '2026-07-01T13:22:01.708433+00:00';
+  binData.goal_set_at['chapin'] = '2026-06-25T13:22:01.708433+00:00';
+  binData.goal_set_at['rob']    = '2026-06-20T13:22:01.708433+00:00';
+  const ok = await saveBin();
+  if(ok) { renderChalk(); alert('Done!'); }
+  else   { alert('Save failed.'); }
 }
 
 // ── Chalkboard Goals ──────────────────────────────────────────────────────
@@ -539,6 +580,10 @@ async function saveGoal(key) {
   if(!ta) return;
   if(!binData.goals) binData.goals={};
   binData.goals[key] = ta.value.trim();
+  if(binData.goals[key]) {
+    if(!binData.goal_set_at) binData.goal_set_at={};
+    binData.goal_set_at[key] = new Date().toISOString();
+  }
   chalkEditing[key] = false;
   renderChalk();
   await saveBin();
