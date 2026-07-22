@@ -151,6 +151,7 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
 .cp-chain-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;cursor:help}
+.cp-chain-line{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:2px}
 .cp-cat{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:1px 6px;border-radius:3px}
 .cp-cost{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--am)}
 .cp-cov{margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--or)}
@@ -832,31 +833,43 @@ function cpRender(){
   if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
-  const cards=Object.entries(agg).map(([item,d])=>{
+  const entries=Object.entries(agg).map(([item,d])=>{
+    const anc=[]; let cur=item;
+    while(ITEM_TREE[cur]&&ITEM_TREE[cur].from&&ITEM_TREE[cur].from.length){ cur=ITEM_TREE[cur].from[0][0]; anc.unshift(cur); }
+    const chain=[...anc,item];
     const t=ITEM_TREE[item]||{};
-    const chain=[];
-    if(t.from&&t.from.length) chain.push(t.from[0][0]);
-    chain.push(item);
     if(t.into){ const fwd=t.into.find(([n])=>agg[n]); if(fwd) chain.push(fwd[0]); }
-    const bold=chain.reduce((a,b)=>(ITEM_COSTS[b]||0)>(ITEM_COSTS[a]||0)?b:a);
+    const bold=chain[chain.length-1];
     return {item,d,chain,bold,boldCost:ITEM_COSTS[bold]||9999};
-  }).sort((a,b)=> b.d.hs.length-a.d.hs.length || a.boldCost-b.boldCost);
+  });
+  const groups={};
+  entries.forEach(e=>{ (groups[e.bold]=groups[e.bold]||[]).push(e); });
+  const cards=Object.values(groups).map(g=>{
+    const chain=g.reduce((a,b)=>b.chain.length>a.chain.length?b:a).chain;
+    const whys=g.flatMap(e=>e.d.hs.map(([hn,why])=>[hn,why,e.item]));
+    const cov=new Set(whys.map(w=>w[0])).size;
+    const cat=(agg[g[0].bold]||g[0].d).cat;
+    return {chain,bold:g[0].bold,boldCost:g[0].boldCost,cat,whys,cov};
+  }).sort((a,b)=> b.cov-a.cov || a.boldCost-b.boldCost);
   const early=cards.filter(c=>c.boldCost<=1600);
   const late =cards.filter(c=>c.boldCost>1600);
-  const cpCard=({item,d,chain,bold},i)=>{
-    const c=TC[d.cat], catName=d.cat==='W'?'Weapon':d.cat==='V'?'Vitality':'Spirit';
-    const title=chain.map(n=>{
+  const cpCard=({chain,bold,cat,whys,cov},i)=>{
+    const c=TC[cat], catName=cat==='W'?'Weapon':cat==='V'?'Vitality':'Spirit';
+    const seg=n=>{
       const cost=ITEM_COSTS[n], tip=itemTipHTML(n);
-      return `<span class="${n===bold?'cp-item-name':'cp-chain-sm'}" ${tip?'data-tip="1"':''} style="position:relative">${n}${cost?` (${cost.toLocaleString()})`:''}${tip}</span>`;
-    }).join('<span class="cp-arrow">→</span>');
+      return `<span class="cp-chain-sm" ${tip?'data-tip="1"':''} style="position:relative">${n}${cost?` (${cost.toLocaleString()})`:''}${tip}</span>`;
+    };
+    const prefix=chain.slice(0,-1);
+    const bigTip=itemTipHTML(bold), bigCost=ITEM_COSTS[bold];
     return `<div class="cp-card${i<3?' top':''}">
+      ${prefix.length?`<div class="cp-chain-line">${prefix.map(seg).join('<span class="cp-arrow">→</span>')}<span class="cp-arrow">→</span></div>`:''}
       <div class="cp-item-row">
-        ${title}
+        <span class="cp-item-name" ${bigTip?'data-tip="1"':''} style="position:relative">${bold}${bigCost?` (${bigCost.toLocaleString()})`:''}${bigTip}</span>
         <span class="cp-cat" style="color:${c};background:${c}22">${catName}</span>
-        <span class="cp-cov">counters ${d.hs.length} of ${cpSel.length}</span>
+        <span class="cp-cov">counters ${cov} of ${cpSel.length}</span>
       </div>
-      ${d.hs.map(([hn,why])=>{
-        const txt=item+': '+why;
+      ${whys.map(([hn,why,src])=>{
+        const txt=src+': '+why;
         const ri=window.__cpRows.push({hero:hn,text:txt})-1;
         const fl=isFlagged(hn,'counterpick',txt);
         return `<div class="cp-why"><img src="${IMGS[hn]||''}"><div style="flex:1"><span class="w-hero">${hn}:</span> <span class="w-text">${why}</span></div><button class="flag-btn${fl?' flagged':''}" title="${fl?'Remove flag':'Flag — suggest a change'}" onclick="cpFlag(${ri},this)">⚑</button></div>`;
