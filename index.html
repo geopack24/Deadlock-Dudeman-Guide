@@ -146,13 +146,11 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-sug-input{width:100%;min-height:44px;background:var(--cd);border:.5px solid var(--bd);border-radius:6px;color:var(--tx);font-family:inherit;font-size:12px;padding:7px;resize:vertical;margin:6px 0}
 .cp-sug-item{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.4;padding:5px 8px;background:var(--cd);border:.5px solid var(--bd);border-radius:5px;margin-top:5px}
 .cp-sug-add{background:rgba(76,175,106,.08);border:.5px solid var(--gr);border-radius:5px;color:var(--gr);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px}
-.cp-chain{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:6px;font-family:'IBM Plex Mono',monospace;font-size:9px}
-.cp-mini{position:relative;border:.5px solid var(--bd);border-radius:4px;padding:2px 6px;background:var(--cd);color:var(--mu);cursor:help;letter-spacing:.5px;white-space:nowrap}
-.cp-mini.cur{border-color:var(--or);color:var(--or)}
-.cp-arrow{color:var(--di)}
+.cp-arrow{color:var(--di);font-size:11px}
 .cp-card.top{border-color:var(--or);box-shadow:0 0 0 1px rgba(232,98,42,.3)}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px}
+.cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
+.cp-chain-sm{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.5px;cursor:help}
 .cp-cat{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:1px 6px;border-radius:3px}
 .cp-cost{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--am)}
 .cp-cov{margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--or)}
@@ -826,23 +824,6 @@ function cpSuggestHTML(){
       : `<button class="cp-sug-add" style="margin-top:6px" onclick="openModal('cpsuggest')">🔒 Chairman/Chapin — unlock to suggest</button>`}
   </div>`;
 }
-function chainPill(name,cur){
-  const cost=ITEM_COSTS[name], tip=itemTipHTML(name);
-  return `<span class="cp-mini${cur?' cur':''}" ${tip?'data-tip="1"':''}>${name}${cost?` <span style="opacity:.65">${cost.toLocaleString()}</span>`:''}${tip}</span>`;
-}
-function chainHTML(item){
-  const t=ITEM_TREE[item]; if(!t) return '';
-  const used=window.__cpUsed||(window.__cpUsed=new Set(Object.values(COUNTER_ITEMS).flatMap(l=>l.map(([n])=>n))));
-  const parts=[];
-  if(t.from) parts.push(t.from.map(([n])=>chainPill(n,false)).join(''));
-  parts.push(chainPill(item,true));
-  if(t.into){
-    const sorted=[...t.into].sort((a,b)=>(used.has(b[0])?1:0)-(used.has(a[0])?1:0));
-    const show=sorted.slice(0,2), extra=sorted.length-show.length;
-    parts.push(show.map(([n])=>chainPill(n,false)).join('')+(extra>0?`<span class="cp-mini" style="opacity:.55" title="also: ${sorted.slice(2).map(([n])=>n).join(', ')}">+${extra} more</span>`:''));
-  }
-  return `<div class="cp-chain">${parts.join('<span class="cp-arrow">→</span>')}</div>`;
-}
 function cpRender(){
   const el=document.getElementById('cp-results'); if(!cpMode) return;
   window.__cpRows=[];
@@ -851,20 +832,29 @@ function cpRender(){
   if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
-  const sorted=Object.entries(agg).sort((a,b)=> b[1].hs.length-a[1].hs.length || (ITEM_COSTS[a[0]]||9999)-(ITEM_COSTS[b[0]]||9999));
-  const early=sorted.filter(([item])=>(ITEM_COSTS[item]||9999)<=1600);
-  const late =sorted.filter(([item])=>(ITEM_COSTS[item]||9999)>1600);
-  const cpCard=([item,d],i)=>{
+  const cards=Object.entries(agg).map(([item,d])=>{
+    const t=ITEM_TREE[item]||{};
+    const chain=[];
+    if(t.from&&t.from.length) chain.push(t.from[0][0]);
+    chain.push(item);
+    if(t.into){ const fwd=t.into.find(([n])=>agg[n]); if(fwd) chain.push(fwd[0]); }
+    const bold=chain.reduce((a,b)=>(ITEM_COSTS[b]||0)>(ITEM_COSTS[a]||0)?b:a);
+    return {item,d,chain,bold,boldCost:ITEM_COSTS[bold]||9999};
+  }).sort((a,b)=> b.d.hs.length-a.d.hs.length || a.boldCost-b.boldCost);
+  const early=cards.filter(c=>c.boldCost<=1600);
+  const late =cards.filter(c=>c.boldCost>1600);
+  const cpCard=({item,d,chain,bold},i)=>{
     const c=TC[d.cat], catName=d.cat==='W'?'Weapon':d.cat==='V'?'Vitality':'Spirit';
-    const cost=ITEM_COSTS[item]?ITEM_COSTS[item].toLocaleString():'';
+    const title=chain.map(n=>{
+      const cost=ITEM_COSTS[n], tip=itemTipHTML(n);
+      return `<span class="${n===bold?'cp-item-name':'cp-chain-sm'}" ${tip?'data-tip="1"':''} style="position:relative">${n}${cost?` (${cost.toLocaleString()})`:''}${tip}</span>`;
+    }).join('<span class="cp-arrow">→</span>');
     return `<div class="cp-card${i<3?' top':''}">
       <div class="cp-item-row">
-        <span class="cp-item-name" ${itemTipHTML(item)?'data-tip="1"':''} style="position:relative">${item}${itemTipHTML(item)}</span>
+        ${title}
         <span class="cp-cat" style="color:${c};background:${c}22">${catName}</span>
-        ${cost?`<span class="cp-cost">${cost} souls</span>`:''}
         <span class="cp-cov">counters ${d.hs.length} of ${cpSel.length}</span>
       </div>
-      ${chainHTML(item)}
       ${d.hs.map(([hn,why])=>{
         const txt=item+': '+why;
         const ri=window.__cpRows.push({hero:hn,text:txt})-1;
