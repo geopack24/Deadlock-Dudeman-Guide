@@ -142,6 +142,10 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-card{background:var(--sf);border:.5px solid var(--bd);border-radius:9px;padding:10px 12px;margin-bottom:8px}
 .cp-empty{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--di);letter-spacing:1px;padding:8px 0}
 .cp-sect{font-size:16px;font-weight:700;color:var(--gr);letter-spacing:3px;border-bottom:1px solid var(--gr);padding-bottom:4px}
+.cp-suggest{margin-top:14px;background:var(--sf);border:.5px dashed var(--bd);border-radius:9px;padding:10px 12px}
+.cp-sug-input{width:100%;min-height:44px;background:var(--cd);border:.5px solid var(--bd);border-radius:6px;color:var(--tx);font-family:inherit;font-size:12px;padding:7px;resize:vertical;margin:6px 0}
+.cp-sug-item{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.4;padding:5px 8px;background:var(--cd);border:.5px solid var(--bd);border-radius:5px;margin-top:5px}
+.cp-sug-add{background:rgba(76,175,106,.08);border:.5px solid var(--gr);border-radius:5px;color:var(--gr);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px}
 .cp-card.top{border-color:var(--or);box-shadow:0 0 0 1px rgba(232,98,42,.3)}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px}
@@ -758,10 +762,32 @@ function cpFlag(i, btn) {
   if(!isFlagged(hero,'counterpick',text)) note=prompt('Optional note for Claude — what should change?')||undefined;
   toggleFlag(hero,'counterpick',text,btn,note);
 }
+async function cpAddSuggestion(){
+  const ta=document.getElementById('cp-sug-input'); const v=(ta&&ta.value||'').trim(); if(!v) return;
+  if(!binData.cp_suggestions) binData.cp_suggestions=[];
+  binData.cp_suggestions.push({text:v,heroes:cpSel.slice(),ts:new Date().toISOString()});
+  if(ta) ta.value='';
+  cpRender(); await saveBin();
+}
+async function cpRemoveSuggestion(i){
+  (binData.cp_suggestions||[]).splice(i,1);
+  cpRender(); await saveBin();
+}
+function cpSuggestHTML(){
+  const sugs=binData.cp_suggestions||[];
+  return `<div class="cp-suggest">
+    <div class="secl" style="color:var(--am)">✎ Item suggestions for Claude</div>
+    ${sugs.map((s,i)=>`<div class="cp-sug-item"><div style="flex:1"><span style="color:var(--mu)">[${(s.heroes&&s.heroes.length?s.heroes.join(', '):'general')}]</span> ${String(s.text).replace(/</g,'&lt;')}</div><button class="fi-remove" onclick="cpRemoveSuggestion(${i})">✕</button></div>`).join('')}
+    <textarea class="cp-sug-input" id="cp-sug-input" placeholder="e.g. add Toxic Bullets vs Abrams — melts his regen"></textarea>
+    <button class="cp-sug-add" onclick="cpAddSuggestion()">＋ Add suggestion</button>
+  </div>`;
+}
 function cpRender(){
   const el=document.getElementById('cp-results'); if(!cpMode) return;
   window.__cpRows=[];
-  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'; return; }
+  const prev=document.getElementById('cp-sug-input'); const draft=prev?prev.value:'';
+  const restore=()=>{ const ni=document.getElementById('cp-sug-input'); if(ni) ni.value=draft; };
+  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
   const sorted=Object.entries(agg).sort((a,b)=> b[1].hs.length-a[1].hs.length || (ITEM_COSTS[a[0]]||9999)-(ITEM_COSTS[b[0]]||9999));
@@ -796,7 +822,8 @@ function cpRender(){
   <div class="two">
     ${cpCol('Early game &middot; 1,600 &amp; under', early)}
     ${cpCol('Late game &middot; 3,200 &amp; up', late)}
-  </div>`;
+  </div>${cpSuggestHTML()}`;
+  restore();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
