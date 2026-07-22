@@ -832,10 +832,15 @@ function chainPill(name,cur){
 }
 function chainHTML(item){
   const t=ITEM_TREE[item]; if(!t) return '';
+  const used=window.__cpUsed||(window.__cpUsed=new Set(Object.values(COUNTER_ITEMS).flatMap(l=>l.map(([n])=>n))));
   const parts=[];
   if(t.from) parts.push(t.from.map(([n])=>chainPill(n,false)).join(''));
   parts.push(chainPill(item,true));
-  if(t.into) parts.push(t.into.map(([n])=>chainPill(n,false)).join(''));
+  if(t.into){
+    const sorted=[...t.into].sort((a,b)=>(used.has(b[0])?1:0)-(used.has(a[0])?1:0));
+    const show=sorted.slice(0,2), extra=sorted.length-show.length;
+    parts.push(show.map(([n])=>chainPill(n,false)).join('')+(extra>0?`<span class="cp-mini" style="opacity:.55" title="also: ${sorted.slice(2).map(([n])=>n).join(', ')}">+${extra} more</span>`:''));
+  }
   return `<div class="cp-chain">${parts.join('<span class="cp-arrow">→</span>')}</div>`;
 }
 function cpRender(){
