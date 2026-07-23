@@ -836,9 +836,10 @@ async function cpRefSheet(){
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
 window.addEventListener('paste',e=>{
-  if(!cpMode) return;
+  const t=e.target;
+  if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT')&&!(e.clipboardData&&[...e.clipboardData.items].some(i=>i.type&&i.type.startsWith('image/')))) return;
   const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type&&i.type.startsWith('image/'));
-  if(it){ e.preventDefault(); cpScanImage(it.getAsFile()); }
+  if(it){ e.preventDefault(); if(!cpMode) toggleCp(); cpScanImage(it.getAsFile()); }
 });
 function cpScanStatus(msg){
   const el=document.getElementById('cp-scan-status');
