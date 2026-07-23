@@ -173,6 +173,8 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
   <div class="cp-bar">
     <input type="text" id="srch" placeholder="Search heroes..." oninput="renderGrid()" style="flex:1">
     <button class="cp-toggle" id="cp-toggle" onclick="toggleCp()">⚔ COUNTERPICK</button>
+    <button class="cp-toggle" id="cp-scan-btn" style="display:none" title="Scan a screenshot of the enemy team" onclick="cpScanClick()">📷 SCAN</button>
+    <input type="file" id="cp-shot-input" accept="image/*" style="display:none" onchange="cpScanFile(event)">
   </div>
   <div class="grid" id="grid"></div>
   <div id="cp-results" style="display:none"></div>
@@ -781,6 +783,7 @@ let cpMode=false, cpSel=[];
 function toggleCp(){
   cpMode=!cpMode; if(!cpMode) cpSel=[];
   document.getElementById('cp-toggle').classList.toggle('on',cpMode);
+  document.getElementById('cp-scan-btn').style.display=cpMode?'':'none';
   document.getElementById('res').style.display=cpMode?'none':'';
   document.getElementById('cp-results').style.display=cpMode?'block':'none';
   renderGrid(); cpRender();
@@ -799,6 +802,60 @@ function cpFlag(i, btn) {
   if(!isFlagged(hero,'counterpick',text)) note=prompt('Optional note for Claude — what should change?')||undefined;
   toggleFlag(hero,'counterpick',text,btn,note);
 }
+// ── Enemy-team screenshot scanner ─────────────────────────────────────────
+function cpGetKey(){
+  let k=localStorage.getItem('cp_api_key');
+  if(!k){
+    k=prompt('Paste your Anthropic API key (sk-ant-...).\nStored only in THIS browser — never uploaded to the site or the bin.');
+    if(!k||!k.trim()) return null;
+    k=k.trim(); localStorage.setItem('cp_api_key',k);
+  }
+  return k;
+}
+function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
+function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
+window.addEventListener('paste',e=>{
+  if(!cpMode) return;
+  const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type&&i.type.startsWith('image/'));
+  if(it){ e.preventDefault(); cpScanImage(it.getAsFile()); }
+});
+function cpScanStatus(msg){
+  const el=document.getElementById('cp-scan-status');
+  if(el) el.textContent=msg;
+  const btn=document.getElementById('cp-scan-btn');
+  if(btn) btn.textContent=msg?'📷 '+msg.toUpperCase():'📷 SCAN';
+}
+async function cpScanImage(file){
+  const key=cpGetKey(); if(!key) return;
+  cpScanStatus('scanning…');
+  try{
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('could not read image')); i.src=URL.createObjectURL(file); });
+    const scale=Math.min(1, 1568/Math.max(img.width,img.height));
+    const cv=document.createElement('canvas');
+    cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    const b64=cv.toDataURL('image/jpeg',0.85).split(',')[1];
+    const names=H.map(h=>h[0]);
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:200,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+        {type:'text',text:'This is a screenshot from the video game Deadlock. Identify the ENEMY team heroes shown (their portraits are usually in a row along the top of the HUD). Choose ONLY from this exact list: '+JSON.stringify(names)+'. Reply with ONLY a JSON array of the matching hero names (max 6), nothing else.'}
+      ]}]})
+    });
+    if(r.status===401||r.status===403){ localStorage.removeItem('cp_api_key'); cpScanStatus('bad API key — scan again to re-enter'); return; }
+    if(!r.ok){ cpScanStatus('scan failed ('+r.status+')'); return; }
+    const j=await r.json();
+    const txt=(j.content&&j.content[0]&&j.content[0].text)||'';
+    const m=txt.match(/\[[\s\S]*?\]/);
+    const found=m?JSON.parse(m[0]).filter(n=>names.includes(n)).slice(0,6):[];
+    if(!found.length){ cpScanStatus('no heroes recognized — try a clearer shot'); return; }
+    cpSel=found;
+    renderGrid(); cpRender(); cpScanStatus('');
+  }catch(err){ cpScanStatus('scan error: '+err.message); }
+}
+
 function cpCanSuggest(){ return unlocked||chapUnlocked; }
 async function cpAddSuggestion(){
   if(!cpCanSuggest()){ openModal('cpsuggest'); return; }
@@ -830,7 +887,7 @@ function cpRender(){
   window.__cpRows=[];
   const prev=document.getElementById('cp-sug-input'); const draft=prev?prev.value:'';
   const restore=()=>{ const ni=document.getElementById('cp-sug-input'); if(ni) ni.value=draft; };
-  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
+  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6) — or 📷 scan / paste (Ctrl+V) a screenshot of the enemy team<div id="cp-scan-status" style="margin-top:6px;color:var(--am)"></div></div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
   const entries=Object.entries(agg).map(([item,d])=>{
