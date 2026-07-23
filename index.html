@@ -840,16 +840,53 @@ function cpLoadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.
 const CP_G=12;
 function cpVec(src,sx,sy,sw,sh){
   const c=document.createElement('canvas'); c.width=CP_G; c.height=CP_G;
-  c.getContext('2d').drawImage(src,Math.max(0,sx),Math.max(0,sy),sw,sh,0,0,CP_G,CP_G);
-  const d=c.getContext('2d').getImageData(0,0,CP_G,CP_G).data;
-  const v=new Float32Array(CP_G*CP_G*3);
-  for(let i=0,j=0;i<d.length;i+=4){ v[j++]=d[i]; v[j++]=d[i+1]; v[j++]=d[i+2]; }
-  let m=0; for(let i=0;i<v.length;i++) m+=v[i]; m/=v.length;
-  let ss=0; for(let i=0;i<v.length;i++){ v[i]-=m; ss+=v[i]*v[i]; }
+  const ctx=c.getContext('2d');
+  ctx.drawImage(src,Math.max(0,sx),Math.max(0,sy),sw,sh,0,0,CP_G,CP_G);
+  const d=ctx.getImageData(0,0,CP_G,CP_G).data;
+  const N=CP_G*CP_G;
+  let mr=0,mg=0,mb=0;
+  for(let i=0;i<d.length;i+=4){ mr+=d[i]; mg+=d[i+1]; mb+=d[i+2]; }
+  mr/=N; mg/=N; mb/=N;
+  const m=(mr+mg+mb)/3;
+  const v=new Float32Array(N*3);
+  let ss=0;
+  for(let p=0;p<N;p++){
+    const i=p*4;
+    const a=d[i]-m, b=d[i+1]-m, cc=d[i+2]-m;
+    v[p*3]=a; v[p*3+1]=b; v[p*3+2]=cc;
+    ss+=a*a+b*b+cc*cc;
+  }
   const nm=Math.sqrt(ss)||1; for(let i=0;i<v.length;i++) v[i]/=nm;
-  return v;
+  return {v, mr, mg, mb};
 }
 function cpDot(a,b){ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*b[i]; return s; }
+// locate portrait circles via the blue/teal health badges under each portrait
+function cpFindCircles(cvs,W,Hh){
+  const ctx=cvs.getContext('2d');
+  const y0=Math.round(0.55*Hh), y1=Math.round(0.72*Hh);
+  const d=ctx.getImageData(0,y0,W,Math.max(1,y1-y0)).data;
+  const col=new Float32Array(W);
+  const rows=Math.max(1,y1-y0);
+  for(let y=0;y<rows;y++) for(let x=0;x<W;x++){
+    const i=(y*W+x)*4, r=d[i], g=d[i+1], b=d[i+2];
+    if((b>110&&b>r*1.25&&b>g*1.15)||(g>110&&g>r*1.25&&g>=b*0.95)) col[x]++;
+  }
+  const win=Math.max(8,Math.round(0.06*Hh));
+  const sm=new Float32Array(W);
+  let acc=0;
+  for(let x=0;x<W;x++){ acc+=col[x]; if(x>=win) acc-=col[x-win]; sm[x]=acc; }
+  let mx=0; for(let x=0;x<W;x++) if(sm[x]>mx) mx=sm[x];
+  const thr=Math.max(4,0.25*mx), minSep=0.4*Hh;
+  const idx=[...sm.keys()].sort((a,b)=>sm[b]-sm[a]);
+  const peaks=[];
+  for(const x of idx){
+    if(sm[x]<thr) break;
+    if(peaks.some(p=>Math.abs(p-x)<minSep)) continue;
+    peaks.push(x);
+    if(peaks.length>=6) break;
+  }
+  return peaks.sort((a,b)=>a-b).map(x=>x-win/2);
+}
 let __cpFp=null;
 async function cpFingerprints(){
   if(__cpFp) return __cpFp;
@@ -869,33 +906,44 @@ async function cpFingerprints(){
 }
 async function cpPixelMatch(img){
   const fp=await cpFingerprints();
-  const n=6, sw=img.width/n, sh=img.height;
-  const per=[];
-  for(let k=0;k<n;k++){
-    const sc=document.createElement('canvas'); sc.width=Math.round(sw); sc.height=sh;
-    sc.getContext('2d').drawImage(img,k*sw,0,sw,sh,0,0,sc.width,sh);
-    const patches=[];
-    for(const side of [0.8*sw,0.65*sw,0.5*sw])
-      for(const cy of [0.26*sh,0.33*sh,0.40*sh])
-        patches.push(cpVec(sc,(sw-side)/2,cy-side/2,side,side));
-    let best=null, second=null;
-    for(const name in fp){
-      let s=-1;
-      for(const rv of fp[name]) for(const pv of patches){ const d=cpDot(rv,pv); if(d>s) s=d; }
-      if(!best||s>best.s){ second=best; best={name,s}; }
-      else if(!second||s>second.s) second={name,s};
-    }
-    per.push({slice:k,best,second});
+  const W=img.width, Hh=img.height;
+  const cvs=document.createElement('canvas'); cvs.width=W; cvs.height=Hh;
+  cvs.getContext('2d').drawImage(img,0,0);
+  // anchor on the health badges to find the six circle centers, then match densely at each
+  let centers=cpFindCircles(cvs,W,Hh);
+  const usedBadges=centers.length>=4;
+  if(!usedBadges){ centers=[]; for(let k=0;k<6;k++) centers.push((k+0.5)*W/6); }
+  const results=[];
+  for(const cx of centers){
+    const bestByHero={};
+    let redCount=0, patchCount=0;
+    for(const side of [0.52*Hh,0.44*Hh,0.36*Hh,0.28*Hh])
+      for(const cy of [0.27*Hh,0.32*Hh,0.37*Hh])
+        for(const dx of [-0.06*Hh,0,0.06*Hh]){
+          const p=cpVec(cvs,cx+dx-side/2,cy-side/2,side,side);
+          patchCount++;
+          if(p.mr>1.85*p.mg && p.mr>1.85*p.mb){ redCount++; continue; }
+          for(const name in fp){
+            let s=-1;
+            for(const r of fp[name]){ const d=cpDot(r.v,p.v); if(d>s) s=d; }
+            if(!(name in bestByHero)||s>bestByHero[name]) bestByHero[name]=s;
+          }
+        }
+    if(redCount>patchCount*0.35){ results.push({cx,dead:true}); continue; }
+    const ranked=Object.entries(bestByHero).sort((a,b)=>b[1]-a[1]);
+    if(!ranked.length){ results.push({cx,dead:true}); continue; }
+    results.push({cx,name:ranked[0][0],s:ranked[0][1],s2:ranked.length>1?ranked[1][1]:0});
   }
-  const picks={};
-  per.forEach(p=>{
-    if(p.best && p.best.s>0.5 && (p.best.s-(p.second?p.second.s:0))>0.015){
-      if(!(p.best.name in picks)||p.best.s>picks[p.best.name]) picks[p.best.name]=p.best.s;
-    }
-  });
-  const names=Object.keys(picks).sort((a,b)=>picks[b]-picks[a]);
-  const debug=per.map(p=>`slice ${p.slice}: ${p.best&&p.best.name} ${(p.best?p.best.s:0).toFixed(3)} (2nd: ${p.second&&p.second.name} ${(p.second?p.second.s:0).toFixed(3)})`);
-  return {names, debug};
+  const picked=[];
+  for(const r of results.filter(r=>!r.dead).sort((a,b)=>b.s-a.s)){
+    if(r.s<0.48 || (r.s-r.s2)<0.012) continue;
+    if(picked.some(p=>p.name===r.name)) continue;
+    picked.push(r);
+  }
+  picked.sort((a,b)=>a.cx-b.cx);
+  const debug=['badges '+(usedBadges?'found at: '+centers.map(c=>Math.round(c)).join(', '):'NOT found — equal slices fallback')]
+    .concat(results.map(r=>r.dead?`x=${Math.round(r.cx)}: (dead/red — skipped)`:`x=${Math.round(r.cx)}: ${r.name} s=${r.s.toFixed(3)} (2nd ${r.s2.toFixed(3)})${picked.includes(r)?'':' [REJECTED]'}`));
+  return {names:picked.map(p=>p.name), debug};
 }
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
@@ -929,7 +977,8 @@ async function cpScanImage(file){
       console.log('cp pixel match:\n'+res.debug.join('\n'));
       if(res.names.length>=3){
         cpSel=res.names.slice(0,6);
-        renderGrid(); cpRender(); cpScanStatus('');
+        renderGrid(); cpRender();
+        cpScanStatus(res.names.length<6?('matched '+res.names.length+' — tap any missed heroes'):'');
         return;
       }
       console.log('cp pixel match low confidence — falling back to AI scan');
