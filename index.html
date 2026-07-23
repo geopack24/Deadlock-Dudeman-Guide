@@ -812,6 +812,27 @@ function cpGetKey(){
   }
   return k;
 }
+let __cpRefSheet=null;
+async function cpRefSheet(){
+  if(__cpRefSheet) return __cpRefSheet;
+  const names=H.map(h=>h[0]);
+  const imgs=await Promise.all(names.map(n=>new Promise(res=>{
+    const i=new Image(); i.onload=()=>res([n,i]); i.onerror=()=>res([n,null]); i.src=IMGS[n]||'';
+  })));
+  const cols=8, cell=96, label=16, rows=Math.ceil(names.length/cols);
+  const cv=document.createElement('canvas');
+  cv.width=cols*cell; cv.height=rows*(cell+label);
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,cv.width,cv.height);
+  imgs.forEach(([n,img],i)=>{
+    const x=(i%cols)*cell, y=Math.floor(i/cols)*(cell+label);
+    if(img) ctx.drawImage(img,x,y,cell,cell);
+    ctx.fillStyle='#fff'; ctx.font='11px monospace'; ctx.textAlign='center';
+    ctx.fillText(n,x+cell/2,y+cell+12);
+  });
+  __cpRefSheet=cv.toDataURL('image/jpeg',0.85).split(',')[1];
+  return __cpRefSheet;
+}
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
 window.addEventListener('paste',e=>{
@@ -836,18 +857,21 @@ async function cpScanImage(file){
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
     const b64=cv.toDataURL('image/jpeg',0.85).split(',')[1];
     const names=H.map(h=>h[0]);
+    const ref=await cpRefSheet();
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:200,messages:[{role:'user',content:[
+      body:JSON.stringify({model:'claude-sonnet-5',max_tokens:300,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:ref}},
         {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-        {type:'text',text:'This is a screenshot from the video game Deadlock. Identify the ENEMY team heroes shown (their portraits are usually in a row along the top of the HUD). Choose ONLY from this exact list: '+JSON.stringify(names)+'. Reply with ONLY a JSON array of the matching hero names (max 6), nothing else.'}
+        {type:'text',text:'Image 1 is a labeled reference chart of all 38 hero portraits from the video game Deadlock, with each hero\'s name written underneath. Image 2 is a gameplay screenshot. Find the hero portraits in the top HUD bar of image 2 and match each one to the reference chart by visual comparison. The enemy team is the group of portraits on the RIGHT side of the match timer at top-center; if only one group of portraits is visible, use that group. Reply with ONLY a JSON array of up to 6 hero names spelled exactly as in the chart, nothing else.'}
       ]}]})
     });
     if(r.status===401||r.status===403){ localStorage.removeItem('cp_api_key'); cpScanStatus('bad API key — scan again to re-enter'); return; }
     if(!r.ok){ cpScanStatus('scan failed ('+r.status+')'); return; }
     const j=await r.json();
     const txt=(j.content&&j.content[0]&&j.content[0].text)||'';
+    console.log('cp scan raw reply:',txt);
     const m=txt.match(/\[[\s\S]*?\]/);
     const found=m?JSON.parse(m[0]).filter(n=>names.includes(n)).slice(0,6):[];
     if(!found.length){ cpScanStatus('no heroes recognized — try a clearer shot'); return; }
