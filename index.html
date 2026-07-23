@@ -900,10 +900,18 @@ async function cpPixelMatch(img){
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
 window.addEventListener('paste',e=>{
+  const cd=e.clipboardData; if(!cd) return;
   const t=e.target;
-  if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT')&&!(e.clipboardData&&[...e.clipboardData.items].some(i=>i.type&&i.type.startsWith('image/')))) return;
-  const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type&&i.type.startsWith('image/'));
-  if(it){ e.preventDefault(); if(!cpMode) toggleCp(); cpScanImage(it.getAsFile()); }
+  const hasImageItem=[...(cd.items||[])].some(i=>i.type&&i.type.startsWith('image/'));
+  const fileImage=[...(cd.files||[])].find(f=>f.type&&f.type.startsWith('image/'));
+  if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT')&&!hasImageItem&&!fileImage) return;
+  if(!hasImageItem&&!fileImage) return;
+  e.preventDefault();
+  if(!cpMode) toggleCp();
+  const it=[...(cd.items||[])].find(i=>i.type&&i.type.startsWith('image/'));
+  const blob=(it&&it.getAsFile())||fileImage||null;
+  if(blob) cpScanImage(blob);
+  else cpScanStatus('clipboard had no readable image — save it and use 📷 SCAN');
 });
 function cpScanStatus(msg){
   const el=document.getElementById('cp-scan-status');
@@ -912,6 +920,7 @@ function cpScanStatus(msg){
   if(btn) btn.textContent=msg?'📷 '+msg.toUpperCase():'📷 SCAN';
 }
 async function cpScanImage(file){
+  if(!(file instanceof Blob)){ cpScanStatus('no readable image — try 📷 SCAN instead'); return; }
   cpScanStatus('scanning…');
   try{
     const img=await cpLoadImg(URL.createObjectURL(file));
