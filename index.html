@@ -869,7 +869,7 @@ function cpFindCircles(cvs,W,Hh){
   const rows=Math.max(1,y1-y0);
   for(let y=0;y<rows;y++) for(let x=0;x<W;x++){
     const i=(y*W+x)*4, r=d[i], g=d[i+1], b=d[i+2];
-    if((b>110&&b>r*1.25&&b>g*1.15)||(g>110&&g>r*1.25&&g>=b*0.95)) col[x]++;
+    if((b>110&&b>r*1.25&&b>g*1.15)||(g>110&&g>r*1.25&&g>=b*0.95)||(r>140&&g>0.45*r&&g<0.8*r&&b<0.6*g)) col[x]++;
   }
   const win=Math.max(8,Math.round(0.06*Hh));
   const sm=new Float32Array(W);
