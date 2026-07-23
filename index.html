@@ -819,7 +819,7 @@ async function cpRefSheet(){
   const imgs=await Promise.all(names.map(n=>new Promise(res=>{
     const i=new Image(); i.onload=()=>res([n,i]); i.onerror=()=>res([n,null]); i.src=IMGS[n]||'';
   })));
-  const cols=8, cell=96, label=16, rows=Math.ceil(names.length/cols);
+  const cols=8, cell=144, label=18, rows=Math.ceil(names.length/cols);
   const cv=document.createElement('canvas');
   cv.width=cols*cell; cv.height=rows*(cell+label);
   const ctx=cv.getContext('2d');
@@ -827,8 +827,8 @@ async function cpRefSheet(){
   imgs.forEach(([n,img],i)=>{
     const x=(i%cols)*cell, y=Math.floor(i/cols)*(cell+label);
     if(img) ctx.drawImage(img,x,y,cell,cell);
-    ctx.fillStyle='#fff'; ctx.font='11px monospace'; ctx.textAlign='center';
-    ctx.fillText(n,x+cell/2,y+cell+12);
+    ctx.fillStyle='#fff'; ctx.font='13px monospace'; ctx.textAlign='center';
+    ctx.fillText(n,x+cell/2,y+cell+14);
   });
   __cpRefSheet=cv.toDataURL('image/jpeg',0.85).split(',')[1];
   return __cpRefSheet;
@@ -862,10 +862,10 @@ async function cpScanImage(file){
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-5',max_tokens:300,messages:[{role:'user',content:[
+      body:JSON.stringify({model:'claude-sonnet-5',max_tokens:800,messages:[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:'image/jpeg',data:ref}},
         {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-        {type:'text',text:'Both images are from the video game Deadlock and show only stylized fictional video game characters, not real people. Image 1 is a reference chart of the 38 playable heroes, each labeled with the hero name. Image 2 is a gameplay screenshot; the small portraits in the HUD bar at the top show which heroes are in the match. Compare the top-bar portraits in image 2 against the chart in image 1 and determine which heroes appear. The enemy team is the group of portraits on the RIGHT of the match timer at top-center; if only one group of portraits is visible, use that group. Answer with ONLY a JSON array of the hero names (max 6), for example ["Haze","Bebop"]. If no hero portraits are visible, answer [].'}
+        {type:'text',text:'Both images are from the video game Deadlock and show only stylized fictional video game characters, not real people. Image 1 is a reference chart of the 38 playable heroes, each labeled with the hero name. Image 2 is a gameplay screenshot whose top HUD bar shows a row of small circular hero portraits. Important: the HUD portraits are 3D in-game renders while the chart is painted card art, so match by distinctive features (species, skin color, hairstyle, headgear, glasses, beard, robot parts, fangs, etc), not exact art style. A hero who just died can appear as a dark silhouette on a red glow marked CRITICAL - skip any portrait you cannot confidently identify; better to omit than to guess. If two groups of portraits are visible, the enemy team is the group RIGHT of the match timer; if only one group is visible, use it. First briefly describe the distinguishing features of each top-bar portrait from left to right and name your best match for each. Then end your reply with a single final line containing ONLY a JSON array of the matched hero names (max 6), for example ["Haze","Bebop"].'}
       ]}]})
     });
     if(r.status===401||r.status===403){ localStorage.removeItem('cp_api_key'); cpScanStatus('bad API key — scan again to re-enter'); return; }
@@ -877,8 +877,11 @@ async function cpScanImage(file){
     const j=await r.json();
     const txt=(j.content&&j.content.map(c=>c.text||'').join(' '))||'';
     console.log('cp scan raw reply:',txt);
-    const m=txt.match(/\[[\s\S]*?\]/);
-    const found=m?JSON.parse(m[0]).filter(n=>names.includes(n)).slice(0,6):[];
+    const arrs=txt.match(/\[[^\[\]]*\]/g)||[];
+    let found=[];
+    for(let i=arrs.length-1;i>=0;i--){
+      try{ const cand=JSON.parse(arrs[i]).filter(n=>names.includes(n)); if(cand.length){ found=cand.slice(0,6); break; } }catch(e){}
+    }
     if(!found.length){ cpScanStatus('model said: '+(txt.trim().slice(0,120)||'(empty reply)')); return; }
     cpSel=found;
     renderGrid(); cpRender(); cpScanStatus('');
