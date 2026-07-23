@@ -833,23 +833,19 @@ function cpRender(){
   if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
-  const entries=Object.entries(agg).map(([item,d])=>{
+  // one card per recommended item, filed by its own cost, with only its own reasons.
+  // the title still shows the item's component ancestry (e.g. Debuff Reducer -> UNSTOPPABLE).
+  const cards=Object.entries(agg).map(([item,d])=>{
     const anc=[]; let cur=item;
     while(ITEM_TREE[cur]&&ITEM_TREE[cur].from&&ITEM_TREE[cur].from.length){ cur=ITEM_TREE[cur].from[0][0]; anc.unshift(cur); }
-    const chain=[...anc,item];
-    const t=ITEM_TREE[item]||{};
-    if(t.into){ const fwd=t.into.find(([n])=>agg[n]); if(fwd) chain.push(fwd[0]); }
-    const bold=chain[chain.length-1];
-    return {item,d,chain,bold,boldCost:ITEM_COSTS[bold]||9999};
-  });
-  const groups={};
-  entries.forEach(e=>{ (groups[e.bold]=groups[e.bold]||[]).push(e); });
-  const cards=Object.values(groups).map(g=>{
-    const chain=g.reduce((a,b)=>b.chain.length>a.chain.length?b:a).chain;
-    const whys=g.flatMap(e=>e.d.hs.map(([hn,why])=>[hn,why,e.item]));
-    const cov=new Set(whys.map(w=>w[0])).size;
-    const cat=(agg[g[0].bold]||g[0].d).cat;
-    return {chain,bold:g[0].bold,boldCost:g[0].boldCost,cat,whys,cov};
+    return {
+      chain:[...anc,item],
+      bold:item,
+      boldCost:ITEM_COSTS[item]||9999,
+      cat:d.cat,
+      whys:d.hs.map(([hn,why])=>[hn,why,item]),
+      cov:d.hs.length
+    };
   }).sort((a,b)=> b.cov-a.cov || a.boldCost-b.boldCost);
   const early=cards.filter(c=>c.boldCost<=1600);
   const late =cards.filter(c=>c.boldCost>1600);
