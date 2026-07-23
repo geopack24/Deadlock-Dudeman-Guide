@@ -865,17 +865,21 @@ async function cpScanImage(file){
       body:JSON.stringify({model:'claude-sonnet-5',max_tokens:300,messages:[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:'image/jpeg',data:ref}},
         {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-        {type:'text',text:'Image 1 is a labeled reference chart of all 38 hero portraits from the video game Deadlock, with each hero\'s name written underneath. Image 2 is a gameplay screenshot. Find the hero portraits in the top HUD bar of image 2 and match each one to the reference chart by visual comparison. The enemy team is the group of portraits on the RIGHT side of the match timer at top-center; if only one group of portraits is visible, use that group. Reply with ONLY a JSON array of up to 6 hero names spelled exactly as in the chart, nothing else.'}
+        {type:'text',text:'Both images are from the video game Deadlock and show only stylized fictional video game characters, not real people. Image 1 is a reference chart of the 38 playable heroes, each labeled with the hero name. Image 2 is a gameplay screenshot; the small portraits in the HUD bar at the top show which heroes are in the match. Compare the top-bar portraits in image 2 against the chart in image 1 and determine which heroes appear. The enemy team is the group of portraits on the RIGHT of the match timer at top-center; if only one group of portraits is visible, use that group. Answer with ONLY a JSON array of the hero names (max 6), for example ["Haze","Bebop"]. If no hero portraits are visible, answer [].'}
       ]}]})
     });
     if(r.status===401||r.status===403){ localStorage.removeItem('cp_api_key'); cpScanStatus('bad API key — scan again to re-enter'); return; }
-    if(!r.ok){ cpScanStatus('scan failed ('+r.status+')'); return; }
+    if(!r.ok){
+      const eb=await r.json().catch(()=>null);
+      cpScanStatus('scan failed ('+r.status+'): '+(((eb&&eb.error&&eb.error.message)||'').slice(0,90)||'unknown error'));
+      return;
+    }
     const j=await r.json();
-    const txt=(j.content&&j.content[0]&&j.content[0].text)||'';
+    const txt=(j.content&&j.content.map(c=>c.text||'').join(' '))||'';
     console.log('cp scan raw reply:',txt);
     const m=txt.match(/\[[\s\S]*?\]/);
     const found=m?JSON.parse(m[0]).filter(n=>names.includes(n)).slice(0,6):[];
-    if(!found.length){ cpScanStatus('no heroes recognized — try a clearer shot'); return; }
+    if(!found.length){ cpScanStatus('model said: '+(txt.trim().slice(0,120)||'(empty reply)')); return; }
     cpSel=found;
     renderGrid(); cpRender(); cpScanStatus('');
   }catch(err){ cpScanStatus('scan error: '+err.message); }
