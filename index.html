@@ -880,7 +880,7 @@ async function cpScanImage(file){
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-5',max_tokens:800,messages:[{role:'user',content}]})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:1000,thinking:{type:'disabled'},messages:[{role:'user',content}]})
     });
     if(r.status===401||r.status===403){ localStorage.removeItem('cp_api_key'); cpScanStatus('bad API key — scan again to re-enter'); return; }
     if(!r.ok){
@@ -890,13 +890,13 @@ async function cpScanImage(file){
     }
     const j=await r.json();
     const txt=(j.content&&j.content.map(c=>c.text||'').join(' '))||'';
-    console.log('cp scan raw reply:',txt);
+    console.log('cp scan stop_reason:',j.stop_reason,'raw reply:',txt);
     const arrs=txt.match(/\[[^\[\]]*\]/g)||[];
     let found=[];
     for(let i=arrs.length-1;i>=0;i--){
       try{ const cand=[...new Set(JSON.parse(arrs[i]).filter(n=>names.includes(n)))]; if(cand.length){ found=cand.slice(0,6); break; } }catch(e){}
     }
-    if(!found.length){ cpScanStatus('model said: '+(txt.trim().slice(0,120)||'(empty reply)')); return; }
+    if(!found.length){ cpScanStatus('model said: '+(txt.trim().slice(0,120)||'(empty reply — stop_reason: '+(j&&j.stop_reason)+')')); return; }
     cpSel=found;
     renderGrid(); cpRender(); cpScanStatus('');
   }catch(err){ cpScanStatus('scan error: '+err.message); }
