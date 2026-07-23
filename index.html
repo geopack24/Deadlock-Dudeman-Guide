@@ -945,6 +945,22 @@ async function cpPixelMatch(img){
     .concat(results.map(r=>r.dead?`x=${Math.round(r.cx)}: (dead/red — skipped)`:`x=${Math.round(r.cx)}: ${r.name} s=${r.s.toFixed(3)} (2nd ${r.s2.toFixed(3)})${picked.includes(r)?'':' [REJECTED]'}`));
   return {names:picked.map(p=>p.name), debug};
 }
+// detect browsers that randomize canvas readback (Brave shields, Firefox strict privacy):
+// render a fixed pattern and compare its pixel hash across page loads
+function cpCanvasStable(){
+  try{
+    const c=document.createElement('canvas'); c.width=64; c.height=64;
+    const g=c.getContext('2d');
+    const gr=g.createLinearGradient(0,0,64,64); gr.addColorStop(0,'#123456'); gr.addColorStop(1,'#fedcba');
+    g.fillStyle=gr; g.fillRect(0,0,64,64);
+    g.fillStyle='#0f0'; g.beginPath(); g.arc(32,32,20,0,7); g.fill();
+    const d=g.getImageData(0,0,64,64).data;
+    let h=0; for(let i=0;i<d.length;i+=17) h=((h*31)+d[i])>>>0;
+    const key='cp_canvas_sig', prev=localStorage.getItem(key);
+    localStorage.setItem(key,String(h));
+    return prev===null||prev===String(h);
+  }catch(e){ return false; }
+}
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
 window.addEventListener('paste',e=>{
@@ -973,15 +989,21 @@ async function cpScanImage(file){
   try{
     const img=await cpLoadImg(URL.createObjectURL(file));
     if(img.width/img.height>=3.5){
-      const res=await cpPixelMatch(img);
-      console.log('cp pixel match:\n'+res.debug.join('\n'));
-      if(res.names.length>=3){
-        cpSel=res.names.slice(0,6);
-        renderGrid(); cpRender();
-        cpScanStatus(res.names.length<6?('matched '+res.names.length+' — tap any missed heroes'):'');
-        return;
+      if(!cpCanvasStable()){
+        console.warn('cp scan: canvas readback differs from last page load — a browser privacy feature (e.g. Brave Shields, Firefox strict mode) is randomizing pixel data. Pixel matching is unreliable here; using AI scan. Disable the protection for this site to use free pixel scanning.');
+        cpScanStatus('browser privacy blocks pixel scan — using AI…');
+      } else {
+        const res=await cpPixelMatch(img);
+        console.log('cp pixel match:\n'+res.debug.join('\n'));
+        if(res.names.length>=3){
+          cpSel=res.names.slice(0,6);
+          renderGrid(); cpRender();
+          cpScanStatus('pixel scan: '+res.names.length+' matched'+(res.names.length<6?' — tap any missed heroes':''));
+          return;
+        }
+        console.log('cp pixel match low confidence — falling back to AI scan');
+        cpScanStatus('pixel scan unsure — trying AI…');
       }
-      console.log('cp pixel match low confidence — falling back to AI scan');
     }
     await cpScanAI(img);
   }catch(err){ cpScanStatus('scan error: '+err.message); }
