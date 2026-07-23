@@ -913,6 +913,11 @@ async function cpPixelMatch(img){
   let centers=cpFindCircles(cvs,W,Hh);
   const usedBadges=centers.length>=4;
   if(!usedBadges){ centers=[]; for(let k=0;k<6;k++) centers.push((k+0.5)*W/6); }
+  const cropAt=cx=>{
+    const side=0.54*Hh, t=document.createElement('canvas'); t.width=64; t.height=64;
+    t.getContext('2d').drawImage(cvs,cx-side/2,0.32*Hh-side/2,side,side,0,0,64,64);
+    return t.toDataURL('image/jpeg',0.7);
+  };
   const results=[];
   for(const cx of centers){
     const bestByHero={};
@@ -929,10 +934,10 @@ async function cpPixelMatch(img){
             if(!(name in bestByHero)||s>bestByHero[name]) bestByHero[name]=s;
           }
         }
-    if(redCount>patchCount*0.35){ results.push({cx,dead:true}); continue; }
+    if(redCount>patchCount*0.35){ results.push({cx,dead:true,crop:cropAt(cx)}); continue; }
     const ranked=Object.entries(bestByHero).sort((a,b)=>b[1]-a[1]);
-    if(!ranked.length){ results.push({cx,dead:true}); continue; }
-    results.push({cx,name:ranked[0][0],s:ranked[0][1],s2:ranked.length>1?ranked[1][1]:0});
+    if(!ranked.length){ results.push({cx,dead:true,crop:cropAt(cx)}); continue; }
+    results.push({cx,name:ranked[0][0],s:ranked[0][1],s2:ranked.length>1?ranked[1][1]:0,crop:cropAt(cx)});
   }
   const picked=[];
   for(const r of results.filter(r=>!r.dead).sort((a,b)=>b.s-a.s)){
@@ -943,7 +948,11 @@ async function cpPixelMatch(img){
   picked.sort((a,b)=>a.cx-b.cx);
   const debug=['badges '+(usedBadges?'found at: '+centers.map(c=>Math.round(c)).join(', '):'NOT found — equal slices fallback')]
     .concat(results.map(r=>r.dead?`x=${Math.round(r.cx)}: (dead/red — skipped)`:`x=${Math.round(r.cx)}: ${r.name} s=${r.s.toFixed(3)} (2nd ${r.s2.toFixed(3)})${picked.includes(r)?'':' [REJECTED]'}`));
-  return {names:picked.map(p=>p.name), debug};
+  const report={
+    badges:usedBadges?centers.map(c=>Math.round(c)):null,
+    circles:results.map(r=>({crop:r.crop, name:r.dead?null:r.name, s:r.dead?0:r.s, status:r.dead?'dead':(picked.includes(r)?'ok':'rejected')}))
+  };
+  return {names:picked.map(p=>p.name), debug, report};
 }
 // detect browsers that randomize canvas readback (Brave shields, Firefox strict privacy):
 // render a fixed pattern and compare its pixel hash across page loads
@@ -960,6 +969,28 @@ function cpCanvasStable(){
     localStorage.setItem(key,String(h));
     return prev===null||prev===String(h);
   }catch(e){ return false; }
+}
+async function cpFileHash(file){
+  try{
+    const u=new Uint8Array(await file.arrayBuffer());
+    let h=u.length>>>0;
+    for(let i=0;i<u.length;i+=997) h=((h*31)+u[i])>>>0;
+    return h.toString(16);
+  }catch(e){ return '?'; }
+}
+function cpReportHTML(){
+  const r=window.__cpReport; if(!r) return '';
+  return `<div class="cp-suggest" style="border-color:var(--am)">
+    <div class="secl" style="color:var(--am)">last scan report — screenshot this if results look wrong</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mu)">img ${r.dims} · hash ${r.hash} · engine: ${r.engine}${r.badges?' · badges @ '+r.badges.join(', '):(r.engine==='pixel'?' · badges NOT found (equal slices)':'')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+      ${(r.circles||[]).map(c=>`<div style="text-align:center;font-size:9px;font-family:'IBM Plex Mono',monospace;color:${c.status==='ok'?'var(--gr)':c.status==='dead'?'var(--mu)':'var(--re)'}">
+        <img src="${c.crop}" style="width:56px;height:56px;border-radius:6px;display:block;margin:0 auto">
+        ${c.name?`<img src="${(typeof IMGS_HUD!=='undefined'&&IMGS_HUD[c.name])||''}" style="width:28px;height:28px;border-radius:4px;margin-top:2px">`:''}
+        <div>${c.name||'(dead)'}${c.name?' '+c.s.toFixed(2):''}</div><div>${c.status}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
 }
 function cpScanClick(){ document.getElementById('cp-shot-input').click(); }
 function cpScanFile(e){ const f=e.target.files&&e.target.files[0]; if(f) cpScanImage(f); e.target.value=''; }
@@ -987,14 +1018,20 @@ async function cpScanImage(file){
   if(!(file instanceof Blob)){ cpScanStatus('no readable image — try 📷 SCAN instead'); return; }
   cpScanStatus('scanning…');
   try{
+    const hash=await cpFileHash(file);
     const img=await cpLoadImg(URL.createObjectURL(file));
+    window.__cpReport={hash, dims:img.width+'×'+img.height, engine:'—', badges:null, circles:[]};
     if(img.width/img.height>=3.5){
       if(!cpCanvasStable()){
         console.warn('cp scan: canvas readback differs from last page load — a browser privacy feature (e.g. Brave Shields, Firefox strict mode) is randomizing pixel data. Pixel matching is unreliable here; using AI scan. Disable the protection for this site to use free pixel scanning.');
         cpScanStatus('browser privacy blocks pixel scan — using AI…');
+        window.__cpReport.engine='AI (canvas randomized)';
       } else {
         const res=await cpPixelMatch(img);
         console.log('cp pixel match:\n'+res.debug.join('\n'));
+        window.__cpReport.engine='pixel';
+        window.__cpReport.badges=res.report.badges;
+        window.__cpReport.circles=res.report.circles;
         if(res.names.length>=3){
           cpSel=res.names.slice(0,6);
           renderGrid(); cpRender();
@@ -1003,6 +1040,7 @@ async function cpScanImage(file){
         }
         console.log('cp pixel match low confidence — falling back to AI scan');
         cpScanStatus('pixel scan unsure — trying AI…');
+        window.__cpReport.engine='AI (pixel unsure)';
       }
     }
     await cpScanAI(img);
@@ -1054,8 +1092,9 @@ async function cpScanAI(img){
       try{ const cand=[...new Set(JSON.parse(arrs[i]).filter(n=>names.includes(n)))]; if(cand.length){ found=cand.slice(0,6); break; } }catch(e){}
     }
     if(!found.length){ cpScanStatus('model said: '+(txt.trim().slice(0,120)||'(empty reply — stop_reason: '+(j&&j.stop_reason)+')')); return; }
+    if(window.__cpReport&&window.__cpReport.engine==='—') window.__cpReport.engine='AI';
     cpSel=found;
-    renderGrid(); cpRender(); cpScanStatus('');
+    renderGrid(); cpRender(); cpScanStatus('AI scan: '+found.length+' matched');
   }catch(err){ cpScanStatus('scan error: '+err.message); }
 }
 
@@ -1090,7 +1129,7 @@ function cpRender(){
   window.__cpRows=[];
   const prev=document.getElementById('cp-sug-input'); const draft=prev?prev.value:'';
   const restore=()=>{ const ni=document.getElementById('cp-sug-input'); if(ni) ni.value=draft; };
-  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6) — or 📷 scan / paste (Ctrl+V) a screenshot of the enemy team<div id="cp-scan-status" style="margin-top:6px;color:var(--am)"></div></div>'+cpSuggestHTML(); restore(); return; }
+  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6) — or 📷 scan / paste (Ctrl+V) a screenshot of the enemy team<div id="cp-scan-status" style="margin-top:6px;color:var(--am)"></div></div>'+cpReportHTML()+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
   const entries=Object.entries(agg).map(([item,d])=>{
@@ -1147,7 +1186,7 @@ function cpRender(){
   <div class="two">
     ${cpCol('Early game &middot; 1,600 &amp; under', early)}
     ${cpCol('Late game &middot; 3,200 &amp; up', late)}
-  </div>${cpSuggestHTML()}`;
+  </div>${cpReportHTML()}${cpSuggestHTML()}`;
   restore();
 }
 
