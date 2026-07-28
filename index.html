@@ -890,7 +890,7 @@ function cpRender(){
         const txt=src+': '+why;
         const ri=window.__cpRows.push({hero:hn,text:txt})-1;
         const fl=isFlagged(hn,'counterpick',txt);
-        return `<div class="cp-why"><img class="${hard?'hard':''}" src="${IMGS[hn]||''}"><div style="flex:1"><span class="w-hero${hard?' hard':''}" ${hard?'title="Hard counter"':''}>${hn}:</span> <span class="w-text">${why}</span></div><button class="flag-btn${fl?' flagged':''}" title="${fl?'Remove flag':'Flag — suggest a change'}" onclick="cpFlag(${ri},this)">⚑</button></div>`;
+        return `<div class="cp-why"><img class="${hard?'hard':''}" src="${IMGS[hn]||''}"><div style="flex:1"><span class="w-hero${hard?' hard':''}" ${hard?'title="High priority"':''}>${hn}:</span> <span class="w-text">${why}</span></div><button class="flag-btn${fl?' flagged':''}" title="${fl?'Remove flag':'Flag — suggest a change'}" onclick="cpFlag(${ri},this)">⚑</button></div>`;
       }).join('')}
     </div>`;
   };
@@ -900,7 +900,7 @@ function cpRender(){
     </div>`;
   el.innerHTML=`<div class="cp-head">
     <span class="cp-count">Countering ${cpSel.length} hero${cpSel.length>1?'es':''}: ${cpSel.join(', ')}</span>
-    <span class="cp-legend"><span style="color:var(--or);font-weight:700">orange hero</span> = hard counter</span>
+    <span class="cp-legend"><span style="color:var(--or);font-weight:700">orange hero</span> = high priority</span>
     <button class="cp-clear" onclick="cpSel=[];renderGrid();cpRender()">✕ Clear</button>
   </div>
   <div class="two">
