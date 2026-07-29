@@ -148,6 +148,9 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-sug-add{background:rgba(76,175,106,.08);border:.5px solid var(--gr);border-radius:5px;color:var(--gr);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px}
 .cp-arrow{color:var(--di);font-size:11px}
 .hc.kbd{border-color:var(--or);box-shadow:0 0 0 2px var(--or),0 0 12px rgba(232,98,42,.55);transform:translateY(-1px)}
+.cp-hname{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.cp-hname:hover{color:var(--or)}
+.cp-hname.on{color:var(--or);font-weight:700}
 .cp-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
 .cp-chip{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--sf);border:.5px solid var(--bd);border-radius:14px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.4px;padding:3px 9px;cursor:pointer;white-space:nowrap}
 .cp-chip:hover{border-color:var(--b2)}
@@ -812,8 +815,9 @@ function pick(i) {
 }
 
 // ── Counterpick ───────────────────────────────────────────────────────────
-let cpMode=false, cpSel=[], cpGroup=null;
+let cpMode=false, cpSel=[], cpGroup=null, cpHeroF=null;
 function cpSetGroup(g){ cpGroup=g; cpRender(); }
+function cpSetHeroF(n){ cpHeroF=(cpHeroF===n?null:n); cpRender(); }
 function toggleCp(){
   cpMode=!cpMode; if(!cpMode) cpSel=[];
   document.getElementById('cp-toggle').classList.toggle('on',cpMode);
@@ -884,12 +888,14 @@ function cpRender(){
     };
   }).sort((a,b)=> b.cov-a.cov || a.bold.localeCompare(b.bold));
   cards.forEach(c=>c.grp=ITEM_GROUP[c.bold]||'res');
-  if(cpGroup && !cards.some(c=>c.grp===cpGroup)) cpGroup=null;
-  const shown=cpGroup?cards.filter(c=>c.grp===cpGroup):cards;
+  if(cpHeroF && !cpSel.includes(cpHeroF)) cpHeroF=null;
+  const pool=cpHeroF?cards.filter(c=>c.whys.some(w=>w[0]===cpHeroF)):cards;
+  if(cpGroup && !pool.some(c=>c.grp===cpGroup)) cpGroup=null;
+  const shown=cpGroup?pool.filter(c=>c.grp===cpGroup):pool;
   const early=shown.filter(c=>c.boldCost<=1600);
   const late =shown.filter(c=>c.boldCost>1600);
   const chip=([key,label])=>{
-    const gc=cards.filter(c=>c.grp===key); if(!gc.length) return '';
+    const gc=pool.filter(c=>c.grp===key); if(!gc.length) return '';
     const heroes=[...new Set(gc.flatMap(c=>c.whys.map(w=>w[0])))];
     const icons=heroes.slice(0,4).map(h=>`<img src="${IMGS[h]||''}" title="${h}">`).join('')+(heroes.length>4?`<span class="chip-more">+${heroes.length-4}</span>`:'');
     return `<button class="cp-chip${cpGroup===key?' on':''}" onclick="cpSetGroup('${key}')">${label}${icons}</button>`;
@@ -933,8 +939,8 @@ function cpRender(){
       ${list.length?list.map(cpCard).join(''):'<div class="cp-empty">nothing here</div>'}
     </div>`;
   el.innerHTML=`<div class="cp-head">
-    <span class="cp-count">Countering ${cpSel.length} hero${cpSel.length>1?'es':''}: ${cpSel.join(', ')}</span>
-    <button class="cp-clear" onclick="cpSel=[];cpGroup=null;renderGrid();cpRender()">✕ Clear</button>
+    <span class="cp-count">Countering ${cpSel.length} hero${cpSel.length>1?'es':''}: ${cpSel.map(n=>`<span class="cp-hname${cpHeroF===n?' on':''}" title="${cpHeroF===n?'Show all heroes':'Show only counters for '+n}" onclick="cpSetHeroF('${n}')">${n}</span>`).join(', ')}</span>
+    <button class="cp-clear" onclick="cpSel=[];cpGroup=null;cpHeroF=null;renderGrid();cpRender()">✕ Clear</button>
   </div>
   ${chips}
   <div class="two">
