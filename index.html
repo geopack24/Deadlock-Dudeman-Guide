@@ -165,7 +165,7 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-lane .lt{font-size:11px;font-weight:700;padding:1px 7px;border-radius:3px}
 .lt-S{color:#fff;background:var(--re)}.lt-A{color:#fff;background:var(--or)}.lt-B{color:#1a1a1a;background:var(--am)}.lt-C{color:var(--tx);background:var(--bd)}.lt-D{color:#1a1a1a;background:var(--gr)}
 .lq{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase}
-.lq-DOM{color:var(--re)}.lq-AGG{color:var(--or)}.lq-FARM{color:var(--am)}.lq-STR{color:var(--mu)}
+.lq-DOM{color:var(--re)}.lq-AGG{color:var(--or)}.lq-FARM{color:var(--am)}.lq-STR{color:var(--mu)}.lq-ALL{color:var(--gr)}
 .cp-lane-plus{color:var(--di);font-size:16px}
 .cp-lane-verdict{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;line-height:1}
 .cp-lane-src{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--di)}
@@ -268,10 +268,11 @@ const ITEM_GROUP={
 // lane-phase win rate at the 9-min snapshot (statlocker.gg get-hero-lane-stats; win = 10%+ net worth lead).
 // no CORS on their API, so this is a baked snapshot — refresh during review rounds.
 const LANE_DATE="2026-07-14";
-// q = lane playstyle quadrant from the same endpoint (avg net worth x avg player damage, median split):
-// DOM high souls/high dmg, AGG low/high, FARM high/low, STR low/low.
-const LANE_STATS={"Rem":{w:36,q:"FARM"},"Calico":{w:35.9,q:"DOM"},"Bebop":{w:35.7,q:"AGG"},"Mo & Krill":{w:35.7,q:"DOM"},"Pocket":{w:35.7,q:"DOM"},"Venator":{w:35.4,q:"DOM"},"Vindicta":{w:35.4,q:"DOM"},"Mirage":{w:34.5,q:"DOM"},"Mina":{w:34.1,q:"DOM"},"Silver":{w:33.4,q:"DOM"},"Warden":{w:33.1,q:"FARM"},"Wraith":{w:32.5,q:"FARM"},"Victor":{w:32.2,q:"FARM"},"Infernus":{w:32.2,q:"DOM"},"Holliday":{w:32.1,q:"AGG"},"Lash":{w:32,q:"AGG"},"Apollo":{w:31.3,q:"AGG"},"Yamato":{w:31.2,q:"DOM"},"Vyper":{w:31.1,q:"STR"},"Paige":{w:31,q:"STR"},"Dynamo":{w:30.9,q:"STR"},"Seven":{w:30.5,q:"FARM"},"Viscous":{w:30.4,q:"AGG"},"Haze":{w:30.3,q:"FARM"},"Lady Geist":{w:30.2,q:"DOM"},"The Doorman":{w:30.1,q:"STR"},"Abrams":{w:29.9,q:"STR"},"Drifter":{w:29.3,q:"DOM"},"Billy":{w:28.4,q:"FARM"},"Grey Talon":{w:28,q:"AGG"},"Shiv":{w:27.5,q:"AGG"},"Paradox":{w:26.8,q:"STR"},"Graves":{w:26.8,q:"STR"},"McGinnis":{w:26.7,q:"STR"},"Ivy":{w:26.7,q:"STR"},"Sinclair":{w:26.3,q:"STR"},"Kelvin":{w:25.8,q:"STR"},"Celeste":{w:25.8,q:"STR"}};
-const LANE_Q={DOM:"Dominator",AGG:"Aggressor",FARM:"Farmer",STR:"Struggler"};
+// w/l = lane win/loss rate percent (rest are draws). q = playstyle quadrant from avg net worth x avg
+// player damage: DOM high souls/high dmg, AGG low/high, FARM high/low, STR low/low, ALL = dead
+// center on both axes (middle 0.38-0.62 band of each min-max range).
+const LANE_STATS={"Rem":{w:36,l:28.3,q:"FARM"},"Calico":{w:35.9,l:26.1,q:"DOM"},"Bebop":{w:35.7,l:27.6,q:"AGG"},"Mo & Krill":{w:35.7,l:26.4,q:"DOM"},"Pocket":{w:35.7,l:27.2,q:"DOM"},"Venator":{w:35.4,l:27.4,q:"DOM"},"Vindicta":{w:35.4,l:27.7,q:"DOM"},"Mirage":{w:34.5,l:26.2,q:"DOM"},"Mina":{w:34.1,l:30,q:"DOM"},"Silver":{w:33.4,l:29.8,q:"DOM"},"Warden":{w:33.1,l:29.2,q:"FARM"},"Wraith":{w:32.5,l:28.7,q:"FARM"},"Victor":{w:32.2,l:30.2,q:"FARM"},"Infernus":{w:32.2,l:29.9,q:"DOM"},"Holliday":{w:32.1,l:30.4,q:"AGG"},"Lash":{w:32,l:29.9,q:"AGG"},"Apollo":{w:31.3,l:32.6,q:"AGG"},"Yamato":{w:31.2,l:31.6,q:"DOM"},"Vyper":{w:31.1,l:32.8,q:"ALL"},"Paige":{w:31,l:32.5,q:"STR"},"Dynamo":{w:30.9,l:32.3,q:"STR"},"Seven":{w:30.5,l:32.2,q:"FARM"},"Viscous":{w:30.4,l:31.3,q:"AGG"},"Haze":{w:30.3,l:32,q:"FARM"},"Lady Geist":{w:30.2,l:33.1,q:"DOM"},"The Doorman":{w:30.1,l:32,q:"STR"},"Abrams":{w:29.9,l:32.8,q:"STR"},"Drifter":{w:29.3,l:32.7,q:"DOM"},"Billy":{w:28.4,l:34.2,q:"FARM"},"Grey Talon":{w:28,l:34,q:"AGG"},"Shiv":{w:27.5,l:34.5,q:"AGG"},"Paradox":{w:26.8,l:35.2,q:"ALL"},"Graves":{w:26.8,l:37.2,q:"ALL"},"McGinnis":{w:26.7,l:36.4,q:"STR"},"Ivy":{w:26.7,l:34.2,q:"STR"},"Sinclair":{w:26.3,l:37.8,q:"STR"},"Kelvin":{w:25.8,l:36.4,q:"STR"},"Celeste":{w:25.8,l:38.8,q:"STR"}};
+const LANE_Q={DOM:"Dominator",AGG:"Aggressor",FARM:"Farmer",STR:"Struggler",ALL:"All-Rounder"};
 const laneTier=w=> w>=37.5?'S':w>=32?'A':w>=30?'B':w>=28?'C':'D';
 const COUNTER_ITEMS = {
 "Abrams":[["Healbane","V","Your damage cuts his Infernal Resilience regen and Siphon Life healing"],["Toxic Bullets","W","Bleed + heal reduction melts his regen-tank playstyle"],["Slowing Bullets","W","Kite him — he has to walk into melee range"],["Reactive Barrier","V","Free barrier the moment his charge stuns you"],["Rebuttal","V","Cheap parry power — heal and hit back when he swings"],["Inhibitor","V","Late-game anti-heal that also cuts his damage by 30%"],["Siphon Bullets","V","Steal chunks of his giant HP pool late game"],["Slowing Hex","S","Blocks both his charge and his ult leap"],["Cursed Relic","S","Interrupts his ult and silences the whole brawl kit"],["Spirit Resilience","V","Softens Siphon Life and Shoulder Charge damage"],["Colossus","V","Pop it when he dives — dual resist + dash slow wins the melee duel"],["Unstoppable","V","Immune to Shoulder Charge and ult CC"],["Decay","S","Melts his big HP pool and halves all his healing"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
@@ -925,13 +926,15 @@ function cpRender(){
   if(cpSel.length>=2){
     const duo=cpSel.slice(0,2).map(n=>({n,...(LANE_STATS[n]||{})}));
     if(duo.every(x=>x.w!=null)){
-      const avg=(duo[0].w+duo[1].w)/2;
-      const [verdict,vc]= avg>=34?['NASTY LANE','var(--re)'] : avg>=31?['STRONG LANE','var(--or)'] : avg>=29?['AVERAGE LANE','var(--am)'] : ['WEAK LANE — PUNISH THEM','var(--gr)'];
+      duo.forEach(x=>x.net=+(x.w-x.l).toFixed(1));
+      const avg=(duo[0].net+duo[1].net)/2;
+      const [verdict,vc]= avg>=6?['NASTY LANE','var(--re)'] : avg>=2?['STRONG LANE','var(--or)'] : avg>=-3?['AVERAGE LANE','var(--am)'] : ['WEAK LANE — PUNISH THEM','var(--gr)'];
+      const fmt=v=>(v>0?'+':'')+v;
       laneHTML=`<div class="cp-lane" style="border-left:3px solid ${vc}">
         <span class="cp-lane-title">⚔ ENEMY<br>LANE DUO</span>
-        ${duo.map(x=>`<span class="cp-lane-hero"><img src="${IMGS[x.n]||''}"><span><span class="lnm">${x.n}</span> ${x.w}% <span class="lt lt-${laneTier(x.w)}">${laneTier(x.w)}</span><br><span class="lq lq-${x.q}">${LANE_Q[x.q]||''}</span></span></span>`).join('<span class="cp-lane-plus">+</span>')}
+        ${duo.map(x=>`<span class="cp-lane-hero"><img src="${IMGS[x.n]||''}"><span><span class="lnm">${x.n}</span> ${fmt(x.net)} <span class="lt lt-${laneTier(x.w)}">${laneTier(x.w)}</span><br><span class="lq lq-${x.q}">${LANE_Q[x.q]||''}</span></span></span>`).join('<span class="cp-lane-plus">+</span>')}
         <span class="cp-lane-verdict" style="color:${vc}">${verdict}</span>
-        <span class="cp-lane-src" title="Lane win rate at the 9-minute mark (10%+ net worth lead = win). Playstyle tag from the souls-vs-damage quadrant chart.">lane WR @9min<br>statlocker.gg · ${LANE_DATE}</span>
+        <span class="cp-lane-src" title="Lane wins minus losses (percent of lanes, 9-minute mark, 10%+ net worth lead = win — the rest are draws). Positive = wins lane more than loses it. Playstyle tag from the souls-vs-damage quadrant chart.">lane W−L @9min<br>statlocker.gg · ${LANE_DATE}</span>
       </div>`;
     }
   }
