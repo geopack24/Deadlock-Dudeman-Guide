@@ -152,10 +152,11 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-legend{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--mu)}
 .hc.kbd{border-color:var(--or);box-shadow:0 0 0 2px var(--or),0 0 12px rgba(232,98,42,.55);transform:translateY(-1px)}
 .cp-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
-.cp-chip{display:flex;align-items:center;gap:5px;background:var(--sf);border:.5px solid var(--bd);border-radius:14px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px;padding:4px 10px;cursor:pointer}
+.cp-chip{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--sf);border:.5px solid var(--bd);border-radius:14px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.4px;padding:3px 9px;cursor:pointer;white-space:nowrap}
 .cp-chip:hover{border-color:var(--b2)}
 .cp-chip.on{border-color:var(--or);color:var(--or);box-shadow:0 0 0 1px var(--or)}
-.cp-chip img{width:16px;height:20px;border-radius:3px;object-fit:cover}
+.cp-chip img{width:14px;height:18px;border-radius:3px;object-fit:cover}
+.cp-chip .chip-more{color:var(--mu);font-size:8px}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
 .cp-chain-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;cursor:help}
@@ -894,9 +895,20 @@ function cpRender(){
   const chip=([key,label])=>{
     const gc=cards.filter(c=>c.grp===key); if(!gc.length) return '';
     const heroes=[...new Set(gc.flatMap(c=>c.whys.map(w=>w[0])))];
-    return `<button class="cp-chip${cpGroup===key?' on':''}" onclick="cpSetGroup('${key}')">${label}${heroes.map(h=>`<img src="${IMGS[h]||''}" title="${h}">`).join('')}</button>`;
+    const icons=heroes.slice(0,4).map(h=>`<img src="${IMGS[h]||''}" title="${h}">`).join('')+(heroes.length>4?`<span class="chip-more">+${heroes.length-4}</span>`:'');
+    return `<button class="cp-chip${cpGroup===key?' on':''}" onclick="cpSetGroup('${key}')">${label}${icons}</button>`;
   };
   const chips=`<div class="cp-chips"><button class="cp-chip${!cpGroup?' on':''}" onclick="cpSetGroup(null)">All</button>${CP_GROUPS.map(chip).join('')}</div>`;
+  // after paint: if the chip row wraps, switch to a balanced grid (4+3, 3+3 — never a lone orphan row)
+  const balanceChips=()=>{
+    const bar=el.querySelector('.cp-chips'); if(!bar) return;
+    bar.style.display='flex'; bar.style.gridTemplateColumns='';
+    const btns=[...bar.children];
+    if(new Set(btns.map(b=>b.offsetTop)).size>1){
+      bar.style.display='grid';
+      bar.style.gridTemplateColumns=`repeat(${Math.ceil(btns.length/2)},1fr)`;
+    }
+  };
   const cpCard=({chain,bold,cat,whys,cov})=>{
     const c=TC[cat], catName=cat==='W'?'Weapon':cat==='V'?'Vitality':'Spirit';
     const seg=n=>{
@@ -935,6 +947,7 @@ function cpRender(){
     ${cpCol('Late game &middot; 3,200 &amp; up', late)}
   </div>${cpSuggestHTML()}`;
   restore();
+  balanceChips();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
