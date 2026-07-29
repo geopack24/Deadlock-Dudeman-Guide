@@ -151,6 +151,11 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-why img.hard{box-shadow:0 0 0 1.5px var(--or)}
 .cp-legend{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--mu)}
 .hc.kbd{border-color:var(--or);box-shadow:0 0 0 2px var(--or),0 0 12px rgba(232,98,42,.55);transform:translateY(-1px)}
+.cp-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.cp-chip{display:flex;align-items:center;gap:5px;background:var(--sf);border:.5px solid var(--bd);border-radius:14px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px;padding:4px 10px;cursor:pointer}
+.cp-chip:hover{border-color:var(--b2)}
+.cp-chip.on{border-color:var(--or);color:var(--or);box-shadow:0 0 0 1px var(--or)}
+.cp-chip img{width:16px;height:20px;border-radius:3px;object-fit:cover}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
 .cp-chain-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;cursor:help}
@@ -238,6 +243,15 @@ const ITEM_TREE = {
 "Capacitor":{from:[["Tesla Bullets",3200]]}
 };
 
+const CP_GROUPS=[["heal","Anti-Heal"],["lock","Lockdown & Disable"],["dmg","Damage Reduction"],["cc","Anti-CC & Cleanse"],["res","Resists & Sustain"],["mob","Mobility & Pursuit"]];
+const ITEM_GROUP={
+"Healbane":"heal","Toxic Bullets":"heal","Decay":"heal","Inhibitor":"heal","Spirit Burn":"heal",
+"Silence Wave":"lock","Knockdown":"lock","Slowing Hex":"lock","Cursed Relic":"lock","Counterspell":"lock","Cold Front":"lock","Slowing Bullets":"lock","Capacitor":"lock",
+"Suppressor":"dmg","Rusted Barrel":"dmg","Disarming Hex":"dmg","Monster Rounds":"dmg","Ricochet":"dmg",
+"Unstoppable":"cc","Debuff Reducer":"cc","Dispel Magic":"cc","Ethereal Shift":"cc","Reactive Barrier":"cc","Indomitable":"cc",
+"Bullet Resilience":"res","Spirit Resilience":"res","Metal Skin":"res","Plated Armor":"res","Spirit Shielding":"res","Weapon Shielding":"res","Grit":"res","Fortitude":"res","Colossus":"res","Spellbreaker":"res","Return Fire":"res","Rebuttal":"res","Healing Rite":"res","Rescue Beam":"res","Siphon Bullets":"res",
+"Warp Stone":"mob","Phantom Strike":"mob","Majestic Leap":"mob","Enduring Speed":"mob","Extra Stamina":"mob"
+};
 const COUNTER_ITEMS = {
 "Abrams":[["Healbane","V","Your damage cuts his Infernal Resilience regen and Siphon Life healing","h"],["Toxic Bullets","W","Bleed + heal reduction melts his regen-tank playstyle","h"],["Slowing Bullets","W","Kite him — he has to walk into melee range"],["Reactive Barrier","V","Free barrier the moment his charge stuns you"],["Rebuttal","V","Cheap parry power — heal and hit back when he swings"],["Inhibitor","V","Late-game anti-heal that also cuts his damage by 30%"],["Siphon Bullets","V","Steal chunks of his giant HP pool late game"],["Slowing Hex","S","Blocks both his charge and his ult leap","h"],["Cursed Relic","S","Interrupts his ult and silences the whole brawl kit"],["Spirit Resilience","V","Softens Siphon Life and Shoulder Charge damage"],["Colossus","V","Pop it when he dives — dual resist + dash slow wins the melee duel","h"],["Unstoppable","V","Immune to Shoulder Charge and ult CC"],["Decay","S","Melts his big HP pool and halves all his healing"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
 "Apollo":[["Slowing Hex","S","Blocks his lunge abilities — a grounded Apollo is a sitting duck","h"],["Cold Front","S","AoE slow punishes him for entering blade range"],["Ethereal Shift","S","Dodge the mega-slash — good stall, but Counterspell is the cheaper answer"],["Silence Wave","S","Removes his whole kit for 3 seconds"],["Spirit Resilience","V","Blunts his spirit burst"],["Spirit Shielding","V","Shield up against his spirit burst"],["Counterspell","V","His abilities and ult are heavily telegraphed — parry them"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
@@ -800,7 +814,8 @@ function pick(i) {
 }
 
 // ── Counterpick ───────────────────────────────────────────────────────────
-let cpMode=false, cpSel=[];
+let cpMode=false, cpSel=[], cpGroup=null;
+function cpSetGroup(g){ cpGroup=g; cpRender(); }
 function toggleCp(){
   cpMode=!cpMode; if(!cpMode) cpSel=[];
   document.getElementById('cp-toggle').classList.toggle('on',cpMode);
@@ -871,8 +886,17 @@ function cpRender(){
       hardN:d.hs.filter(x=>x[2]).length
     };
   }).sort((a,b)=> b.hardN-a.hardN || b.cov-a.cov || a.boldCost-b.boldCost);
-  const early=cards.filter(c=>c.boldCost<=1600);
-  const late =cards.filter(c=>c.boldCost>1600);
+  cards.forEach(c=>c.grp=ITEM_GROUP[c.bold]||'res');
+  if(cpGroup && !cards.some(c=>c.grp===cpGroup)) cpGroup=null;
+  const shown=cpGroup?cards.filter(c=>c.grp===cpGroup):cards;
+  const early=shown.filter(c=>c.boldCost<=1600);
+  const late =shown.filter(c=>c.boldCost>1600);
+  const chip=([key,label])=>{
+    const gc=cards.filter(c=>c.grp===key); if(!gc.length) return '';
+    const heroes=[...new Set(gc.flatMap(c=>c.whys.map(w=>w[0])))];
+    return `<button class="cp-chip${cpGroup===key?' on':''}" onclick="cpSetGroup('${key}')">${label}${heroes.map(h=>`<img src="${IMGS[h]||''}" title="${h}">`).join('')}</button>`;
+  };
+  const chips=`<div class="cp-chips"><button class="cp-chip${!cpGroup?' on':''}" onclick="cpSetGroup(null)">All</button>${CP_GROUPS.map(chip).join('')}</div>`;
   const cpCard=({chain,bold,cat,whys,cov})=>{
     const c=TC[cat], catName=cat==='W'?'Weapon':cat==='V'?'Vitality':'Spirit';
     const seg=n=>{
@@ -903,8 +927,9 @@ function cpRender(){
   el.innerHTML=`<div class="cp-head">
     <span class="cp-count">Countering ${cpSel.length} hero${cpSel.length>1?'es':''}: ${cpSel.join(', ')}</span>
     <span class="cp-legend"><span style="color:var(--or);font-weight:700">orange hero</span> = high priority</span>
-    <button class="cp-clear" onclick="cpSel=[];renderGrid();cpRender()">✕ Clear</button>
+    <button class="cp-clear" onclick="cpSel=[];cpGroup=null;renderGrid();cpRender()">✕ Clear</button>
   </div>
+  ${chips}
   <div class="two">
     ${cpCol('Early game &middot; 1,600 &amp; under', early)}
     ${cpCol('Late game &middot; 3,200 &amp; up', late)}
