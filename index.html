@@ -18,10 +18,10 @@ input[type=text],input[type=password]{width:100%;padding:8px 12px;background:var
 input[type=text]:focus,input[type=password]:focus{border-color:var(--or)}
 input[type=text]::placeholder,input[type=password]::placeholder{color:var(--di)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-bottom:14px}
-.hc{border:.5px solid var(--bd);border-radius:8px;overflow:hidden;cursor:pointer;background:var(--sf);transition:all .12s}
+.hc{position:relative;border:.5px solid var(--bd);border-radius:8px;overflow:hidden;cursor:pointer;background:var(--sf);transition:all .12s}
 .hc:hover{border-color:var(--b2);transform:translateY(-1px)}
 .hc.sel{border-color:var(--or);box-shadow:0 0 0 1px var(--or)}
-.hc.noted{border-color:#d4a017;box-shadow:0 0 0 1px #d4a017,0 0 8px rgba(212,160,23,.35)}
+.hc.noted::after{content:'✎';position:absolute;top:3px;right:3px;font-size:10px;line-height:1;color:#d4a017;background:rgba(0,0,0,.65);border-radius:3px;padding:2px 3px}
 .hc img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
 .hc .nm{font-size:9px;font-weight:500;padding:3px 4px 2px;line-height:1.2}
 .hc .rl{font-size:8px;color:var(--mu);font-family:'IBM Plex Mono',monospace;padding-bottom:3px}
@@ -180,6 +180,19 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-why img{width:22px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .cp-why .w-hero{font-weight:500;color:var(--tx)}
 .cp-why .w-text{color:var(--mu)}
+.chalk-compact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:#2d4a2d;color:rgba(255,255,255,.55);font-size:12px;font-style:italic}
+.chalk-mini{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:inherit}
+.chalk-mini:hover{color:#fff;border-color:rgba(255,255,255,.45)}
+details.flags-panel summary{cursor:pointer;list-style:none}
+details.flags-panel summary::-webkit-details-marker{display:none}
+details.flags-panel summary .flags-title{display:inline}
+details.flags-panel[open] summary{margin-bottom:6px}
+#all-flags{margin-top:14px}
+@media (max-width:700px){
+  .two{grid-template-columns:1fr}
+  .chalk-cols{grid-template-columns:1fr}
+  .cp-lane-src{margin-left:0;flex-basis:100%}
+}
 </style>
 </head>
 <body>
@@ -192,12 +205,13 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
   <div id="chalk-setup"></div>
   </div>
   <div class="cp-bar">
-    <input type="text" id="srch" placeholder="Search heroes... arrows pick, Enter selects" oninput="srchIdx=0;renderGrid()" onkeydown="srchKey(event)" style="flex:1">
+    <input type="text" id="srch" placeholder="Search heroes — Enter selects" oninput="srchIdx=0;renderGrid()" onkeydown="srchKey(event)" style="flex:1">
     <button class="cp-toggle" id="cp-toggle" onclick="toggleCp()">⚔ COUNTERPICK</button>
   </div>
   <div class="grid" id="grid"></div>
   <div id="cp-results" style="display:none"></div>
   <div id="res"><div class="ph">Pick an enemy hero above</div></div>
+  <div id="all-flags"></div>
 </div>
 </div>
 
@@ -297,7 +311,7 @@ const COUNTER_ITEMS = {
 "Mina":[["Fortitude","V","Big HP + regen keeps you out of execute range"],["Knockdown","S","Cancels her ult channel"],["Healbane","V","Umbrella drains far less — and cuts her ult lifesteal"],["Slowing Hex","S","Slows her down and blocks her teleport"],["Spirit Resilience","V","Blunts her spirit damage"],["Spellbreaker","V","Eats Rake's burst damage"],["Spirit Shielding","V","The Love Bites burst trips the barrier — blocks the Rake execute follow-up"],["Dispel Magic","V","Cleanses Love Bites stacks"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
 "Mirage":[["Dispel Magic","V","Cleanse Djinn's Mark before max stacks detonate"],["Slowing Hex","S","Blocks Tornado and his teleport — no knock-up, no escape"],["Unstoppable","V","Immune to the tornado lift"],["Counterspell","V","Parry the scarab volley"],["Bullet Resilience","V","His multiplier bullets hit way softer"],["Reactive Barrier","V","The tornado lift procs the barrier"],["Metal Skin","V","He needs gun hits to stack Djinn's Mark — immunity breaks the loop"],["Debuff Reducer","V","Shrinks his window to stack Djinn's Mark"],["Silence Wave","S","No Tornado — no escape, no engage"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
 "Mo & Krill":[["Debuff Reducer","V","Shortens Combo hold time and Sand Blast blind"],["Knockdown","S","Stun interrupts Combo instantly"],["Unstoppable","V","Can't be Combo'd while it's active"],["Ethereal Shift","S","Combo can't grab you — but Unstoppable is usually better"],["Dispel Magic","V","Cleanse the Sand Blast disarm"],["Reactive Barrier","V","Auto-barrier when Burrow knocks you up"],["Cursed Relic","S","Interrupts Combo and silences them both"],["Spirit Resilience","V","Reduces Combo damage and the Scorn burst"],["Colossus","V","Turns the burrow dive around — resists + slow aura win the brawl"]],
-"Paige":[["Silence Wave","S","Silence her before All-In buffs the team"],["Counterspell","V","Parry blocks her AOE spells"],["Dispel Magic","V","Cleanse the slow from Captivating Read"],["Spellbreaker","V","Eats her spirit burst and resists her debuffs"],["Cursed Relic","S","She has no options once silenced"],["Reactive Barrier","V","Captivating Read's root trips the barrier — shield and stamina to dash out"],["Metal Skin","V","Her gun-buff on an ally does nothing into bullet immunity"],["Disarming Hex","S","Disarm the buffed ally — wastes the whole window"],["Unstoppable","V","Ignores the stun and knockback from the horse charge"]],
+"Paige":[["Silence Wave","S","Silence her before All-In buffs the team"],["Counterspell","V","Parry blocks her AOE spells"],["Dispel Magic","V","Cleanse the slow from Captivating Read"],["Spellbreaker","V","Eats her spirit burst and resists her debuffs"],["Cursed Relic","S","She has no options once silenced"],["Reactive Barrier","V","Captivating Read's root trips the barrier — shield and stamina to dash out"],["Metal Skin","V","Her shield's huge gun-damage buff on an ally does nothing into Metal Skin"],["Disarming Hex","S","Disarm the buffed ally — wastes the whole window"],["Unstoppable","V","Ignores the stun and knockback from the horse charge"]],
 "Paradox":[["Enduring Speed","V","Slow resist vs grenade pulses"],["Dispel Magic","V","Cleanse the pulse amp stacks or her Slowing Hex"],["Warp Stone","V","Quickly escape after the swap"],["Indomitable","V","Auto-cancels the side swap"],["Ethereal Shift","S","Go invulnerable right after the side swap"],["Reactive Barrier","V","Auto-barrier when the carbine time-stops you"],["Unstoppable","V","Immune to time stop and swap-setup CC"],["Silence Wave","S","Stops the wall + swap setup before it starts"],["Metal Skin","V","Occasional pick into her gun build — immune to the carbine"]],
 "Pocket":[["Debuff Reducer","V","Affliction burns way shorter — the classic Pocket answer"],["Counterspell","V","Parry Flying Cloak and cancel his engage"],["Spirit Resilience","V","His entire kit is spirit damage"],["Ethereal Shift","S","Invulnerable for a good chunk of the Affliction window"],["Slowing Hex","S","Hex after he throws the cloak — he can't teleport to it"],["Silence Wave","S","No escapes and no suitcase nonsense"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
 "Rem":[["Debuff Reducer","V","You wake up from Naptime much faster"],["Unstoppable","V","Flat-out immune to the sleep"],["Reactive Barrier","V","Auto-barrier when slept — survive the follow-up"],["Healbane","V","Lil Helpers heal for scraps"],["Slowing Hex","S","Can stop him from using Tagalong"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
@@ -431,6 +445,7 @@ async function toggleFlag(hero, type, text, btn, note) {
     if(note) f.note=note;
     binData.flags.push(f); btn.classList.add('flagged');
   }
+  renderAllFlags();
   await saveBin();
 }
 function flagAbility(idx, btn) {
@@ -442,24 +457,40 @@ function toggleFlagByRow(idx, btn) {
   const {hero,type,text}=window.__rowData[idx];
   toggleFlag(hero,type,text,btn);
 }
-function flagsPanelHTML() {
-  if(!binData.flags||!binData.flags.length) return '';
-  window.__flags = binData.flags;
+const flagItemHTML=(f,fi,fn)=>`<div class="flag-item"><div class="fi-text"><strong>${f.hero}</strong> · ${f.type}<br>${f.text}${f.note?`<br><em style="color:var(--am)">✎ ${f.note}</em>`:''}</div><button class="fi-remove" onclick="${fn}(${fi})">✕</button></div>`;
+function flagsPanelHTML(hero) {
+  const fl=(binData.flags||[]).filter(f=>f.hero===hero);
+  if(!fl.length) return '';
+  window.__flagsHero = fl;
   return `<div class="flags-panel">
-    <div class="flags-title">⚑ Flagged as Incorrect (${binData.flags.length})</div>
-    ${binData.flags.map((f,fi)=>`<div class="flag-item"><div class="fi-text"><strong>${f.hero}</strong> · ${f.type}<br>${f.text}${f.note?`<br><em style="color:var(--am)">✎ ${f.note}</em>`:''}</div><button class="fi-remove" onclick="removeFlagByIndex(${fi})">✕</button></div>`).join('')}
-    <button class="copy-flags" onclick="copyFlags()">Copy all flags to clipboard</button>
+    <div class="flags-title">⚑ Flags for ${hero} (${fl.length})</div>
+    ${fl.map((f,fi)=>flagItemHTML(f,fi,'removeFlagByIndexHero')).join('')}
   </div>`;
+}
+function renderAllFlags() {
+  const el=document.getElementById('all-flags'); if(!el) return;
+  const fl=binData.flags||[];
+  if(!fl.length){ el.innerHTML=''; return; }
+  window.__flagsAll=fl;
+  const wasOpen=el.querySelector('details')?el.querySelector('details').open:false;
+  el.innerHTML=`<details class="flags-panel"${wasOpen?' open':''}><summary><span class="flags-title">⚑ All flags — every hero (${fl.length})</span></summary>
+    ${fl.map((f,fi)=>flagItemHTML(f,fi,'removeFlagByIndexAll')).join('')}
+    <button class="copy-flags" onclick="copyFlags()">Copy all flags to clipboard</button>
+  </details>`;
 }
 async function removeFlag(key) {
   binData.flags=binData.flags.filter(f=>f.key!==key);
   await saveBin();
   if(sel!==null) pick(H.findIndex(h=>h[0]===sel));
+  renderAllFlags();
 }
-async function removeFlagByIndex(idx) {
-  if(!window.__flags||idx>=window.__flags.length) return;
-  const key = window.__flags[idx].key;
-  await removeFlag(key);
+async function removeFlagByIndexHero(idx) {
+  if(!window.__flagsHero||idx>=window.__flagsHero.length) return;
+  await removeFlag(window.__flagsHero[idx].key);
+}
+async function removeFlagByIndexAll(idx) {
+  if(!window.__flagsAll||idx>=window.__flagsAll.length) return;
+  await removeFlag(window.__flagsAll[idx].key);
 }
 function copyFlags() {
   const text=binData.flags.map(f=>`[${f.hero}] (${f.type}) ${f.text}`+(f.note?`\n  NOTE: ${f.note}`:'')).join('\n');
@@ -480,6 +511,7 @@ async function clearAllFlags() {
   if(ok) {
     alert(`Cleared ${count} flag(s).`);
     if(sel !== null) pick(H.findIndex(h=>h[0]===sel));
+    renderAllFlags();
   } else {
     alert('Save failed — flags not cleared.');
   }
@@ -549,7 +581,7 @@ function notesHTML(hero) {
     ${unlocked
       ?`<textarea class="notes-edit" id="notes-ta-chairman" placeholder="Write your notes on ${hero} here..." oninput="autoSave('${safe}','notes','chairman')">${note}</textarea>
         <button class="notes-save" onclick="saveNote('${safe}','notes','chairman')">Save</button>`
-      :`<div class="notes-content${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
+      :(note?`<div class="notes-content">${note}</div>`:'')}
   </div>`;
 }
 function dudeNotesHTML(hero) {
@@ -588,7 +620,7 @@ function dudeNotesHTML(hero) {
       ${isOpen
         ?`<textarea class="notes-edit" id="notes-ta-${safeKey}" placeholder="Write your notes on ${hero} here..." oninput="autoSave('${safe}','${key}','${safeKey}')">${note}</textarea>
           <button class="notes-save" onclick="saveNote('${safe}','${key}','${safeKey}')">Save</button>`
-        :`<div class="dude-note-text${!note?' empty':''}">${note||"No notes yet. Hit 🔒 Edit to add some."}</div>`}
+        :(note?`<div class="dude-note-text">${note}</div>`:'')}
       ${chairComment}
     </div>`;
   }).join('');
@@ -687,6 +719,11 @@ function renderChalk() {
   const cols = document.getElementById('chalk-cols');
   if(!cols) return;
 
+  const allEmpty = CHALK_MEMBERS.every(m => !(binData.goals[m.key]||'').trim() && !(chalkEditing[m.key] && chalkUnlocked(m.key)));
+  if(allEmpty){
+    cols.innerHTML = `<div class="chalk-compact">Nothing on the board yet —
+      ${CHALK_MEMBERS.map(m=>`<button class="chalk-mini" onclick="${chalkUnlocked(m.key)?`startGoalEdit('${m.key}')`:`openModal('${m.modalTarget}')`}">✏️ ${m.label}</button>`).join('')}</div>`;
+  } else
   cols.innerHTML = CHALK_MEMBERS.map(m => {
     const goal = (binData.goals[m.key]||'').trim();
     const isUnlocked = chalkUnlocked(m.key);
@@ -820,7 +857,7 @@ function pick(i) {
       <div class="two">
         <div>
           <div class="secl">Buy these items</div>
-          ${it.map(([nm,c,w])=>makeRow(TC[c],`<span style="font-weight:500">${nm}</span> <span style="font-size:9px;color:${TC[c]};font-family:'IBM Plex Mono',monospace">${c==='W'?'Weapon':c==='V'?'Vitality':'Spirit'}</span><div style="font-size:10px;color:var(--mu);margin-top:1px">${w}</div>`,n,'item',nm)).join('')}
+          ${getItems(n).map(([nm,c,w])=>makeRow(TC[c],`<span style="font-weight:500">${nm}</span> <span style="font-size:9px;color:${TC[c]};font-family:'IBM Plex Mono',monospace">${c==='W'?'Weapon':c==='V'?'Vitality':'Spirit'}</span><div style="font-size:10px;color:var(--mu);margin-top:1px">${w}</div>`,n,'item',nm)).join('')}
         </div>
         <div>
           <div class="secl">Weaknesses</div>
@@ -831,7 +868,7 @@ function pick(i) {
       </div>
       ${notesHTML(n)}
       ${dudeNotesHTML(n)}
-      ${flagsPanelHTML()}
+      ${flagsPanelHTML(n)}
     </div>`;
 }
 
@@ -891,7 +928,7 @@ function cpRender(){
   window.__cpRows=[];
   const prev=document.getElementById('cp-sug-input'); const draft=prev?prev.value:'';
   const restore=()=>{ const ni=document.getElementById('cp-sug-input'); if(ni) ni.value=draft; };
-  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap enemy heroes above (up to 6)</div>'+cpSuggestHTML(); restore(); return; }
+  if(!cpSel.length){ el.innerHTML='<div class="ph">Tap up to 6 enemy heroes — or type a name and hit Enter. Chips filter by category once selected.</div>'+cpSuggestHTML(); restore(); return; }
   const agg={};
   cpSel.forEach(n=>getItems(n).forEach(([item,cat,why])=>{ (agg[item]=agg[item]||{cat,hs:[]}).hs.push([n,why]); }));
   // one card per recommended item, filed by its own cost, with only its own reasons.
@@ -946,6 +983,7 @@ function cpRender(){
     if(new Set(btns.map(b=>b.offsetTop)).size>1){
       bar.style.display='grid';
       bar.style.gridTemplateColumns=`repeat(${Math.ceil(btns.length/2)},1fr)`;
+      if(bar.scrollWidth>bar.clientWidth+2){ bar.style.display='flex'; bar.style.gridTemplateColumns=''; }
     }
   };
   const cpCard=({chain,bold,cat,whys,cov})=>{
@@ -990,7 +1028,7 @@ function cpRender(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-loadBin().then(()=>{ renderGrid(); renderChalk(); });
+loadBin().then(()=>{ renderGrid(); renderChalk(); renderAllFlags(); });
 </script>
 </body>
 </html>
