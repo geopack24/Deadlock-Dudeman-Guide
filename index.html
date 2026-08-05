@@ -169,6 +169,11 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-lane-plus{color:var(--di);font-size:16px}
 .cp-lane-verdict{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;line-height:1}
 .cp-lane-src{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--di)}
+.cp-lane-stats{flex-basis:100%;display:grid;grid-template-columns:auto auto auto auto;gap:3px 20px;justify-content:start;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mu);border-top:.5px solid var(--bd);padding-top:7px;margin-top:2px}
+.cp-lane-stats .cls-name{color:var(--tx);font-weight:700}
+.cp-lane-stats b{color:var(--tx);font-weight:600}
+.cp-lane-stats .good,.cp-lane-stats .good b{color:var(--gr)}
+.cp-lane-focus{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gr);letter-spacing:.5px}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
 .cp-chain-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;cursor:help}
@@ -285,7 +290,9 @@ const LANE_DATE="2026-07-14";
 // w/l = lane win/loss rate percent (rest are draws). q = playstyle quadrant from avg net worth x avg
 // player damage: DOM high souls/high dmg, AGG low/high, FARM high/low, STR low/low, ALL = dead
 // center on both axes (middle 0.38-0.62 band of each min-max range).
-const LANE_STATS={"Rem":{w:36,l:28.3,q:"FARM"},"Calico":{w:35.9,l:26.1,q:"DOM"},"Bebop":{w:35.7,l:27.6,q:"AGG"},"Mo & Krill":{w:35.7,l:26.4,q:"DOM"},"Pocket":{w:35.7,l:27.2,q:"DOM"},"Venator":{w:35.4,l:27.4,q:"DOM"},"Vindicta":{w:35.4,l:27.7,q:"DOM"},"Mirage":{w:34.5,l:26.2,q:"DOM"},"Mina":{w:34.1,l:30,q:"DOM"},"Silver":{w:33.4,l:29.8,q:"DOM"},"Warden":{w:33.1,l:29.2,q:"FARM"},"Wraith":{w:32.5,l:28.7,q:"FARM"},"Victor":{w:32.2,l:30.2,q:"FARM"},"Infernus":{w:32.2,l:29.9,q:"DOM"},"Holliday":{w:32.1,l:30.4,q:"AGG"},"Lash":{w:32,l:29.9,q:"AGG"},"Apollo":{w:31.3,l:32.6,q:"AGG"},"Yamato":{w:31.2,l:31.6,q:"DOM"},"Vyper":{w:31.1,l:32.8,q:"ALL"},"Paige":{w:31,l:32.5,q:"STR"},"Dynamo":{w:30.9,l:32.3,q:"STR"},"Seven":{w:30.5,l:32.2,q:"FARM"},"Viscous":{w:30.4,l:31.3,q:"AGG"},"Haze":{w:30.3,l:32,q:"FARM"},"Lady Geist":{w:30.2,l:33.1,q:"DOM"},"The Doorman":{w:30.1,l:32,q:"STR"},"Abrams":{w:29.9,l:32.8,q:"STR"},"Drifter":{w:29.3,l:32.7,q:"DOM"},"Billy":{w:28.4,l:34.2,q:"FARM"},"Grey Talon":{w:28,l:34,q:"AGG"},"Shiv":{w:27.5,l:34.5,q:"AGG"},"Paradox":{w:26.8,l:35.2,q:"ALL"},"Graves":{w:26.8,l:37.2,q:"ALL"},"McGinnis":{w:26.7,l:36.4,q:"STR"},"Ivy":{w:26.7,l:34.2,q:"STR"},"Sinclair":{w:26.3,l:37.8,q:"STR"},"Kelvin":{w:25.8,l:36.4,q:"STR"},"Celeste":{w:25.8,l:38.8,q:"STR"}};
+// d = avg deaths in lane phase, dt = avg damage taken (same statlocker endpoint);
+// hp = base max health from api.deadlock-api.com/v1/assets/heroes starting_stats.
+const LANE_STATS={"Rem":{w:36,l:28.3,q:"FARM",hp:680,d:1.2,dt:3943},"Calico":{w:35.9,l:26.1,q:"DOM",hp:730,d:1.79,dt:5508},"Bebop":{w:35.7,l:27.6,q:"AGG",hp:880,d:2.18,dt:6056},"Mo & Krill":{w:35.7,l:26.4,q:"DOM",hp:930,d:1.73,dt:7523},"Pocket":{w:35.7,l:27.2,q:"DOM",hp:780,d:1.75,dt:4414},"Venator":{w:35.4,l:27.4,q:"DOM",hp:820,d:1.73,dt:5051},"Vindicta":{w:35.4,l:27.7,q:"DOM",hp:755,d:1.43,dt:3609},"Mirage":{w:34.5,l:26.2,q:"DOM",hp:730,d:1.32,dt:4856},"Mina":{w:34.1,l:30,q:"DOM",hp:660,d:1.85,dt:4173},"Silver":{w:33.4,l:29.8,q:"DOM",hp:830,d:1.73,dt:5648},"Warden":{w:33.1,l:29.2,q:"FARM",hp:805,d:1.7,dt:5172},"Wraith":{w:32.5,l:28.7,q:"FARM",hp:730,d:1.41,dt:4455},"Victor":{w:32.2,l:30.2,q:"FARM",hp:800,d:1.87,dt:5996},"Infernus":{w:32.2,l:29.9,q:"DOM",hp:830,d:1.73,dt:4755},"Holliday":{w:32.1,l:30.4,q:"AGG",hp:780,d:1.57,dt:4262},"Lash":{w:32,l:29.9,q:"AGG",hp:780,d:1.72,dt:4922},"Apollo":{w:31.3,l:32.6,q:"AGG",hp:770,d:2.04,dt:5038},"Yamato":{w:31.2,l:31.6,q:"DOM",hp:730,d:2.17,dt:5713},"Vyper":{w:31.1,l:32.8,q:"ALL",hp:780,d:2.04,dt:4688},"Paige":{w:31,l:32.5,q:"STR",hp:680,d:1.16,dt:3438},"Dynamo":{w:30.9,l:32.3,q:"STR",hp:880,d:1.45,dt:5700},"Seven":{w:30.5,l:32.2,q:"FARM",hp:730,d:1.79,dt:4427},"Viscous":{w:30.4,l:31.3,q:"AGG",hp:780,d:1.35,dt:4529},"Haze":{w:30.3,l:32,q:"FARM",hp:730,d:1.73,dt:4384},"Lady Geist":{w:30.2,l:33.1,q:"DOM",hp:880,d:1.85,dt:4943},"The Doorman":{w:30.1,l:32,q:"STR",hp:755,d:1.39,dt:3915},"Abrams":{w:29.9,l:32.8,q:"STR",hp:800,d:2,dt:7351},"Drifter":{w:29.3,l:32.7,q:"DOM",hp:755,d:2.24,dt:5638},"Billy":{w:28.4,l:34.2,q:"FARM",hp:820,d:2.2,dt:6489},"Grey Talon":{w:28,l:34,q:"AGG",hp:780,d:1.21,dt:3492},"Shiv":{w:27.5,l:34.5,q:"AGG",hp:830,d:1.9,dt:5562},"Paradox":{w:26.8,l:35.2,q:"ALL",hp:730,d:1.71,dt:4239},"Graves":{w:26.8,l:37.2,q:"ALL",hp:730,d:1.73,dt:4752},"McGinnis":{w:26.7,l:36.4,q:"STR",hp:780,d:1.35,dt:4634},"Ivy":{w:26.7,l:34.2,q:"STR",hp:755,d:1.32,dt:4999},"Sinclair":{w:26.3,l:37.8,q:"STR",hp:730,d:1.47,dt:4009},"Kelvin":{w:25.8,l:36.4,q:"STR",hp:880,d:1.46,dt:5942},"Celeste":{w:25.8,l:38.8,q:"STR",hp:690,d:1.86,dt:4341}};
 const LANE_Q={DOM:"Dominator",AGG:"Aggressor",FARM:"Farmer",STR:"Struggler",ALL:"All-Rounder"};
 const laneTier=w=> w>=37.5?'S':w>=32?'A':w>=30?'B':w>=28?'C':'D';
 const COUNTER_ITEMS = {
@@ -967,11 +974,33 @@ function cpRender(){
       const avg=(duo[0].net+duo[1].net)/2;
       const [verdict,vc]= avg>=6?['NASTY LANE','var(--re)'] : avg>=2?['STRONG LANE','var(--or)'] : avg>=-3?['AVERAGE LANE','var(--am)'] : ['WEAK LANE — PUNISH THEM','var(--gr)'];
       const fmt=v=>(v>0?'+':'')+v;
+      // squish score: low base HP + high lane deaths, each normalized across the roster
+      const allS=Object.values(LANE_STATS);
+      const hps=allS.map(s=>s.hp), dss=allS.map(s=>s.d);
+      const mnH=Math.min(...hps), spH=Math.max(...hps)-mnH, mnD=Math.min(...dss), spD=Math.max(...dss)-mnD;
+      const sq=x=>(1-(x.hp-mnH)/spH)*.5+((x.d-mnD)/spD)*.5;
+      const [a,b]=duo, gap=Math.abs(sq(a)-sq(b));
+      const foc=gap>=0.15?(sq(a)>sq(b)?a:b):null;
+      const statRow=x=>{
+        const hpG=Math.abs(a.hp-b.hp)>=60 && x.hp===Math.min(a.hp,b.hp);
+        const dG=Math.abs(a.d-b.d)>=0.3 && x.d===Math.max(a.d,b.d);
+        const dtG=Math.abs(a.dt-b.dt)>=800 && x.dt===Math.max(a.dt,b.dt);
+        return `<span class="cls-name">${foc===x?'🎯 ':''}${x.n}</span><span class="${hpG?'good':''}">base HP <b>${x.hp}</b></span><span class="${dG?'good':''}">deaths/lane <b>${x.d.toFixed(2)}</b></span><span class="${dtG?'good':''}">dmg taken <b>${(x.dt/1000).toFixed(1)}k</b></span>`;
+      };
+      let focusLine='';
+      if(foc){
+        const other=foc===a?b:a, parts=[];
+        if(other.hp-foc.hp>=60) parts.push(`${other.hp-foc.hp} less base HP`);
+        if(foc.d-other.d>=0.3) parts.push(`dies ${(foc.d-other.d).toFixed(1)} more per lane`);
+        focusLine=`<span class="cp-lane-focus">🎯 FOCUS ${foc.n.toUpperCase()} — ${parts.length?parts.join(', '):'noticeably squishier'}. Dump damage cooldowns there.</span>`;
+      }
       laneHTML=`<div class="cp-lane" style="border-left:3px solid ${vc}">
         <span class="cp-lane-title">⚔ ENEMY<br>LANE DUO</span>
         ${duo.map(x=>`<span class="cp-lane-hero"><img src="${IMGS[x.n]||''}"><span><span class="lnm">${x.n}</span> ${fmt(x.net)} <span class="lt lt-${laneTier(x.w)}">${laneTier(x.w)}</span><br><span class="lq lq-${x.q}">${LANE_Q[x.q]||''}</span></span></span>`).join('<span class="cp-lane-plus">+</span>')}
         <span class="cp-lane-verdict" style="color:${vc}">${verdict}</span>
         <span class="cp-lane-src" title="Lane wins minus losses (percent of lanes, 9-minute mark, 10%+ net worth lead = win — the rest are draws). Positive = wins lane more than loses it. Playstyle tag from the souls-vs-damage quadrant chart.">lane W−L @9min<br>statlocker.gg · ${LANE_DATE}</span>
+        <div class="cp-lane-stats">${statRow(a)}${statRow(b)}</div>
+        ${focusLine}
       </div>`;
     }
   }
