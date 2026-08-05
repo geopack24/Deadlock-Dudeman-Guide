@@ -188,6 +188,7 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .chalk-compact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:#2d4a2d;color:rgba(255,255,255,.55);font-size:12px;font-style:italic}
 .chalk-mini{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:inherit}
 .chalk-mini:hover{color:#fff;border-color:rgba(255,255,255,.45)}
+.chalk-claude{font-size:9px;font-family:'IBM Plex Mono',monospace;font-style:normal;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:4px}
 details.flags-panel summary{cursor:pointer;list-style:none}
 details.flags-panel summary::-webkit-details-marker{display:none}
 details.flags-panel summary .flags-title{display:inline}
@@ -744,7 +745,7 @@ function renderChalk() {
              <button class="chalk-save" onclick="saveGoal('${m.key}')">Save</button>
              <button class="chalk-cancel" onclick="cancelGoalEdit('${m.key}')">Cancel</button>
            </div>`
-        : `<div class="chalk-goal${!goal?' empty':''}">${goal||'Nothing yet...'}</div>
+        : `<div class="chalk-goal${!goal?' empty':''}">${goal||'Nothing yet...'}${goal&&binData.goal_author&&binData.goal_author[m.key]==='claude'?'<div class="chalk-claude">☁ Claude\'s pick — edit it or run with it</div>':''}</div>
            ${goal && isUnlocked
              ? `<button class="chalk-done-btn" onclick="completeGoal('${m.key}')">☐ Mark complete</button>`
              : ''}`
@@ -777,6 +778,8 @@ async function saveGoal(key) {
   if(!ta) return;
   if(!binData.goals) binData.goals={};
   binData.goals[key] = ta.value.trim();
+  if(!binData.goal_author) binData.goal_author={};
+  binData.goal_author[key] = binData.goals[key] ? 'self' : '';
   if(binData.goals[key]) {
     if(!binData.goal_set_at) binData.goal_set_at={};
     binData.goal_set_at[key] = new Date().toISOString();
