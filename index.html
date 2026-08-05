@@ -311,9 +311,9 @@ const laneTier=w=> w>=37.5?'S':w>=32?'A':w>=30?'B':w>=28?'C':'D';
 // squish score: low base HP + high lane deaths, each normalized across the roster
 const cpSquish=x=>{const a=Object.values(LANE_STATS);const hs=a.map(s=>s.hp),ds=a.map(s=>s.d);const mnH=Math.min(...hs),spH=Math.max(...hs)-mnH,mnD=Math.min(...ds),spD=Math.max(...ds)-mnD;return (1-(x.hp-mnH)/spH)*.5+((x.d-mnD)/spD)*.5;};
 // win rate by game length (deadlock-api.com analytics, last 30 days at snapshot):
-// e = games under 25 min, m = 25-35 min, lt = over 35 min.
+// t30 = games ending 25-35 min, t40 = 35-45 min, t50 = 45+ min.
 const WR_LEN_DATE="2026-08-05";
-const WR_LEN={"Abrams":{e:47.7,m:50.2,lt:51.6},"Apollo":{e:51.8,m:50.4,lt:48.6},"Bebop":{e:53,m:46.3,lt:47.1},"Billy":{e:44.9,m:50.1,lt:50.5},"Calico":{e:51.1,m:51.8,lt:50.7},"Celeste":{e:48.1,m:50,lt:49},"Drifter":{e:49.9,m:52,lt:51.7},"Dynamo":{e:51.2,m:52.5,lt:52.1},"Graves":{e:55.9,m:58.6,lt:53.5},"Grey Talon":{e:44.8,m:43.7,lt:48.4},"Haze":{e:47.4,m:50.4,lt:54},"Holliday":{e:52.4,m:49.4,lt:47.4},"Infernus":{e:51.5,m:48.3,lt:49.1},"Ivy":{e:50.6,m:55.2,lt:53.6},"Kelvin":{e:47.6,m:54.1,lt:54.1},"Lady Geist":{e:55.6,m:54.2,lt:49.5},"Lash":{e:53.1,m:53.7,lt:51.4},"McGinnis":{e:54.9,m:56.9,lt:51.8},"Mina":{e:45.8,m:41.5,lt:46.2},"Mirage":{e:51.7,m:46.1,lt:47.7},"Mo & Krill":{e:55.5,m:52.1,lt:50.9},"Paige":{e:54.6,m:54.7,lt:52.7},"Paradox":{e:42.8,m:44.5,lt:48.4},"Pocket":{e:46.1,m:43.5,lt:47.8},"Rem":{e:49.3,m:46.1,lt:47.1},"Seven":{e:53.3,m:58.5,lt:53.2},"Shiv":{e:47.9,m:48.2,lt:47.8},"Silver":{e:48.2,m:44.2,lt:45.6},"Sinclair":{e:41.4,m:41,lt:46.2},"The Doorman":{e:45.9,m:47,lt:49.3},"Venator":{e:50.3,m:45.3,lt:45.4},"Victor":{e:49.7,m:52.8,lt:56.3},"Vindicta":{e:53.5,m:51.2,lt:50.5},"Viscous":{e:47.1,m:46,lt:48},"Vyper":{e:45.9,m:46.9,lt:48.7},"Warden":{e:53,m:52.5,lt:49.8},"Wraith":{e:47.4,m:49.5,lt:50.3},"Yamato":{e:49.2,m:49.9,lt:49.4}};
+const WR_LEN={"Abrams":{t30:50.2,t40:51.4,t50:52.1},"Apollo":{t30:50.4,t40:48.7,t50:48.3},"Bebop":{t30:46.3,t40:46.4,t50:49},"Billy":{t30:50.1,t40:51,t50:49.2},"Calico":{t30:51.8,t40:51.3,t50:48.9},"Celeste":{t30:50,t40:48.9,t50:49},"Drifter":{t30:52,t40:52,t50:50.9},"Dynamo":{t30:52.5,t40:52.3,t50:51.5},"Graves":{t30:58.6,t40:53.8,t50:53},"Grey Talon":{t30:43.7,t40:47.9,t50:49.5},"Haze":{t30:50.4,t40:54,t50:54},"Holliday":{t30:49.4,t40:47.6,t50:46.5},"Infernus":{t30:48.3,t40:49.2,t50:48.9},"Ivy":{t30:55.2,t40:54.1,t50:52.2},"Kelvin":{t30:54.1,t40:54.3,t50:53.5},"Lady Geist":{t30:54.2,t40:49.9,t50:48.4},"Lash":{t30:53.7,t40:51.9,t50:50},"McGinnis":{t30:56.9,t40:52.2,t50:50.6},"Mina":{t30:41.5,t40:45.4,t50:48.3},"Mirage":{t30:46.1,t40:47.3,t50:48.6},"Mo & Krill":{t30:52.1,t40:51.2,t50:50},"Paige":{t30:54.7,t40:52.9,t50:52.3},"Paradox":{t30:44.5,t40:48.1,t50:49.1},"Pocket":{t30:43.5,t40:47.3,t50:49.1},"Rem":{t30:46.1,t40:46.5,t50:48.5},"Seven":{t30:58.5,t40:53.8,t50:51.8},"Shiv":{t30:48.2,t40:47.5,t50:48.5},"Silver":{t30:44.2,t40:45.5,t50:45.9},"Sinclair":{t30:41,t40:45.5,t50:48},"The Doorman":{t30:47,t40:49.3,t50:49.2},"Venator":{t30:45.3,t40:45,t50:46.4},"Victor":{t30:52.8,t40:55.9,t50:57.5},"Vindicta":{t30:51.2,t40:50.4,t50:50.7},"Viscous":{t30:46,t40:48,t50:47.9},"Vyper":{t30:46.9,t40:48.4,t50:49.3},"Warden":{t30:52.5,t40:50.1,t50:48.8},"Wraith":{t30:49.5,t40:50,t50:51.1},"Yamato":{t30:49.9,t40:49.4,t50:49.3}};
 // live "what items beat this hero" queries need the api's hero and item ids
 const HERO_API_IDS={"Infernus":1,"Seven":2,"Vindicta":3,"Lady Geist":4,"Abrams":6,"Wraith":7,"McGinnis":8,"Paradox":10,"Dynamo":11,"Kelvin":12,"Haze":13,"Holliday":14,"Bebop":15,"Calico":16,"Grey Talon":17,"Mo & Krill":18,"Shiv":19,"Ivy":20,"Warden":25,"Yamato":27,"Lash":31,"Viscous":35,"Pocket":50,"Mirage":52,"Vyper":58,"Sinclair":60,"Mina":63,"Drifter":64,"Venator":65,"Victor":66,"Paige":67,"The Doorman":69,"Billy":72,"Graves":76,"Apollo":77,"Rem":79,"Silver":80,"Celeste":81};
 const ITEM_API_IDS={"Bullet Resilience":3140772621,"Capacitor":710436191,"Cold Front":1976391348,"Colossus":2407781327,"Counterspell":1414025773,"Cursed Relic":2617435668,"Debuff Reducer":1047818222,"Decay":3144988365,"Disarming Hex":2061878743,"Dispel Magic":3731635960,"Enduring Speed":2447176615,"Ethereal Shift":2533252781,"Extra Stamina":4139877411,"Fortitude":3585132399,"Grit":1672893796,"Healbane":2603935618,"Healing Rite":1710079648,"Indomitable":951866250,"Inhibitor":2037039379,"Knockdown":1254091416,"Majestic Leap":600033864,"Metal Skin":1378931225,"Monster Rounds":1009965641,"Phantom Strike":1371725689,"Plated Armor":3491236900,"Reactive Barrier":1644605047,"Rebuttal":4204808176,"Rescue Beam":1804594021,"Return Fire":3361075077,"Ricochet":2480592370,"Rusted Barrel":2922054143,"Silence Wave":619484391,"Siphon Bullets":1282141666,"Slowing Bullets":393974127,"Slowing Hex":1813726886,"Spellbreaker":1955841979,"Spirit Burn":343572757,"Spirit Resilience":2163598980,"Spirit Shielding":112198670,"Suppressor":1925087134,"Tesla Bullets":811521119,"Toxic Bullets":3696726732,"Unstoppable":3357231760,"Warp Stone":3270001687,"Weapon Shielding":805079544};
@@ -1028,18 +1028,18 @@ function cpRender(){
   // whole-comp readout at 3+ selected: win % by game length, damage lean, softest target, live best items
   let compHTML='';
   if(cpSel.length>=3){
-    const team=cpSel.map(n=>({n,...(LANE_STATS[n]||{}),...(WR_LEN[n]||{})})).filter(x=>x.e!=null&&x.hp!=null);
+    const team=cpSel.map(n=>({n,...(LANE_STATS[n]||{}),...(WR_LEN[n]||{})})).filter(x=>x.t30!=null&&x.hp!=null);
     if(team.length>=3){
       const avg=k=>+(team.reduce((s,x)=>s+x[k],0)/team.length).toFixed(1);
-      const e=avg('e'), m=avg('m'), lt=avg('lt');
+      const t30=avg('t30'), t40=avg('t40'), t50=avg('t50');
       let verdict,vc;
-      if(lt-e>=2){verdict='OUTSCALES YOU — END IT EARLY';vc='var(--re)';}
-      else if(e-lt>=2){verdict='FALLS OFF — DRAG IT LONG';vc='var(--gr)';}
-      else if(m>=e+1.5&&m>=lt+1.5){verdict='MID-GAME SPIKE — WEATHER 25–35';vc='var(--am)';}
+      if(t50-t30>=2){verdict='SCALES INTO LATE GAME';vc='var(--re)';}
+      else if(t30-t50>=2){verdict='FADES IN LONG GAMES';vc='var(--gr)';}
+      else if(t40>=t30+1.5&&t40>=t50+1.5){verdict='PEAKS MID-GAME';vc='var(--am)';}
       else {verdict='FLAT POWER CURVE';vc='var(--mu)';}
-      const hot=Math.max(e,m,lt);
-      const scaler=[...team].sort((x,y)=>(y.lt-y.e)-(x.lt-x.e))[0];
-      const scLine=(scaler.lt-scaler.e)>=4?`<span class="cc-note">📈 <b>${scaler.n}</b> +${(scaler.lt-scaler.e).toFixed(1)}% in long games — shut the farm down</span>`:'';
+      const hot=Math.max(t30,t40,t50);
+      const scaler=[...team].sort((x,y)=>(y.t50-y.t30)-(x.t50-x.t30))[0];
+      const scLine=(scaler.t50-scaler.t30)>=4?`<span class="cc-note">📈 <b>${scaler.n}</b> +${(scaler.t50-scaler.t30).toFixed(1)}% by 50 min — shut the farm down</span>`:'';
       const SP=['Spirit Resilience','Spirit Shielding','Spellbreaker'], GN=['Bullet Resilience','Metal Skin','Plated Armor','Return Fire','Suppressor'];
       let sN=0,bN=0; cpSel.forEach(n=>{ const its=getItems(n).map(x=>x[0]); if(its.some(i=>SP.includes(i))) sN++; if(its.some(i=>GN.includes(i))) bN++; });
       const dmg= sN>bN+1?`mostly <b style="color:${TC.S}">spirit</b> damage — lean spirit resist`
@@ -1048,11 +1048,11 @@ function cpRender(){
       const soft=[...team].sort((x,y)=>cpSquish(y)-cpSquish(x))[0];
       compHTML=`<div class="cp-comp" style="border-left:3px solid ${vc}">
         <span class="cp-lane-title">📊 WHOLE<br>COMP</span>
-        <span class="cc-wr${hot===e?' hot':''}">&lt;25min <b>${e}%</b></span>
-        <span class="cc-wr${hot===m?' hot':''}">25–35 <b>${m}%</b></span>
-        <span class="cc-wr${hot===lt?' hot':''}">35+ <b>${lt}%</b></span>
+        <span class="cc-wr${hot===t30?' hot':''}">@30min <b>${t30}%</b></span>
+        <span class="cc-wr${hot===t40?' hot':''}">@40min <b>${t40}%</b></span>
+        <span class="cc-wr${hot===t50?' hot':''}">@50min <b>${t50}%</b></span>
         <span class="cp-lane-verdict" style="color:${vc}">${verdict}</span>
-        <span class="cp-lane-src" title="Average of each selected hero's win rate in games of that length (red = their strongest window). deadlock-api.com, ranked + unranked, last 30 days at snapshot.">win % by game length<br>deadlock-api · ${WR_LEN_DATE}</span>
+        <span class="cp-lane-src" title="Average of each selected hero's win rate in games ending near that mark (25-35 / 35-45 / 45+ min; red = their strongest window). deadlock-api.com, ranked + unranked, last 30 days at snapshot.">their win % by game length<br>deadlock-api · ${WR_LEN_DATE}</span>
         <div class="cc-row">${scLine}<span class="cc-note">💥 ${dmg}</span><span class="cc-note">🎯 softest target: <b>${soft.n}</b></span></div>
         <div class="cc-items" id="cc-items">⏳ checking live item win rates vs this comp…</div>
       </div>`;
