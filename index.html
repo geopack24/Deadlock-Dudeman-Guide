@@ -695,11 +695,23 @@ function getPhotoTier(key) {
   if(days < 10) return 'normal';
   return 'shit';
 }
+// tiers may hold one image or an array — arrays get a random pick, stable for the visit
+const __photoPick={};
+function pickPhoto(key, tier) {
+  const p=MEMBER_PHOTOS[key]; if(!p) return '';
+  let src=p[tier]||p.normal;
+  if(Array.isArray(src)){
+    const ck=key+'|'+tier;
+    if(__photoPick[ck]==null) __photoPick[ck]=Math.floor(Math.random()*src.length);
+    src=src[__photoPick[ck]%src.length];
+  }
+  return src;
+}
 function memberPhotoHTML(key) {
   const p = MEMBER_PHOTOS[key];
   if(!p) return '';
   const tier = getPhotoTier(key);
-  const src = p[tier] || p.normal;
+  const src = pickPhoto(key, tier);
   const borderStyle = tier==='god'  ? 'border-color:#d4a017;box-shadow:0 0 12px rgba(212,160,23,.5)'
                     : tier==='shit' ? 'border-color:#E24B4A;box-shadow:0 0 12px rgba(226,75,74,.4)'
                     : '';
