@@ -174,6 +174,14 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-lane-stats b{color:var(--tx);font-weight:600}
 .cp-lane-stats .good,.cp-lane-stats .good b{color:var(--gr)}
 .cp-lane-focus{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gr);letter-spacing:.5px}
+.cp-comp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--sf);border:.5px solid var(--bd);border-radius:9px;padding:10px 14px;margin:8px 0 0;font-size:12px}
+.cc-wr{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mu)}
+.cc-wr b{color:var(--tx);font-size:14px}
+.cc-wr.hot b{color:var(--re)}
+.cc-row{flex-basis:100%;display:flex;flex-wrap:wrap;gap:16px;border-top:.5px solid var(--bd);padding-top:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mu)}
+.cc-note b{color:var(--tx)}
+.cc-items{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mu);border-top:.5px solid var(--bd);padding-top:7px}
+.cc-item b{color:var(--gr)}
 .cp-item-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cp-item-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
 .cp-chain-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;cursor:help}
@@ -300,6 +308,15 @@ const LANE_DATE="2026-07-14";
 const LANE_STATS={"Rem":{w:36,l:28.3,q:"FARM",hp:680,d:1.2,dt:3943},"Calico":{w:35.9,l:26.1,q:"DOM",hp:730,d:1.79,dt:5508},"Bebop":{w:35.7,l:27.6,q:"AGG",hp:880,d:2.18,dt:6056},"Mo & Krill":{w:35.7,l:26.4,q:"DOM",hp:930,d:1.73,dt:7523},"Pocket":{w:35.7,l:27.2,q:"DOM",hp:780,d:1.75,dt:4414},"Venator":{w:35.4,l:27.4,q:"DOM",hp:820,d:1.73,dt:5051},"Vindicta":{w:35.4,l:27.7,q:"DOM",hp:755,d:1.43,dt:3609},"Mirage":{w:34.5,l:26.2,q:"DOM",hp:730,d:1.32,dt:4856},"Mina":{w:34.1,l:30,q:"DOM",hp:660,d:1.85,dt:4173},"Silver":{w:33.4,l:29.8,q:"DOM",hp:830,d:1.73,dt:5648},"Warden":{w:33.1,l:29.2,q:"FARM",hp:805,d:1.7,dt:5172},"Wraith":{w:32.5,l:28.7,q:"FARM",hp:730,d:1.41,dt:4455},"Victor":{w:32.2,l:30.2,q:"FARM",hp:800,d:1.87,dt:5996},"Infernus":{w:32.2,l:29.9,q:"DOM",hp:830,d:1.73,dt:4755},"Holliday":{w:32.1,l:30.4,q:"AGG",hp:780,d:1.57,dt:4262},"Lash":{w:32,l:29.9,q:"AGG",hp:780,d:1.72,dt:4922},"Apollo":{w:31.3,l:32.6,q:"AGG",hp:770,d:2.04,dt:5038},"Yamato":{w:31.2,l:31.6,q:"DOM",hp:730,d:2.17,dt:5713},"Vyper":{w:31.1,l:32.8,q:"ALL",hp:780,d:2.04,dt:4688},"Paige":{w:31,l:32.5,q:"STR",hp:680,d:1.16,dt:3438},"Dynamo":{w:30.9,l:32.3,q:"STR",hp:880,d:1.45,dt:5700},"Seven":{w:30.5,l:32.2,q:"FARM",hp:730,d:1.79,dt:4427},"Viscous":{w:30.4,l:31.3,q:"AGG",hp:780,d:1.35,dt:4529},"Haze":{w:30.3,l:32,q:"FARM",hp:730,d:1.73,dt:4384},"Lady Geist":{w:30.2,l:33.1,q:"DOM",hp:880,d:1.85,dt:4943},"The Doorman":{w:30.1,l:32,q:"STR",hp:755,d:1.39,dt:3915},"Abrams":{w:29.9,l:32.8,q:"STR",hp:800,d:2,dt:7351},"Drifter":{w:29.3,l:32.7,q:"DOM",hp:755,d:2.24,dt:5638},"Billy":{w:28.4,l:34.2,q:"FARM",hp:820,d:2.2,dt:6489},"Grey Talon":{w:28,l:34,q:"AGG",hp:780,d:1.21,dt:3492},"Shiv":{w:27.5,l:34.5,q:"AGG",hp:830,d:1.9,dt:5562},"Paradox":{w:26.8,l:35.2,q:"ALL",hp:730,d:1.71,dt:4239},"Graves":{w:26.8,l:37.2,q:"ALL",hp:730,d:1.73,dt:4752},"McGinnis":{w:26.7,l:36.4,q:"STR",hp:780,d:1.35,dt:4634},"Ivy":{w:26.7,l:34.2,q:"STR",hp:755,d:1.32,dt:4999},"Sinclair":{w:26.3,l:37.8,q:"STR",hp:730,d:1.47,dt:4009},"Kelvin":{w:25.8,l:36.4,q:"STR",hp:880,d:1.46,dt:5942},"Celeste":{w:25.8,l:38.8,q:"STR",hp:690,d:1.86,dt:4341}};
 const LANE_Q={DOM:"Dominator",AGG:"Aggressor",FARM:"Farmer",STR:"Struggler",ALL:"All-Rounder"};
 const laneTier=w=> w>=37.5?'S':w>=32?'A':w>=30?'B':w>=28?'C':'D';
+// squish score: low base HP + high lane deaths, each normalized across the roster
+const cpSquish=x=>{const a=Object.values(LANE_STATS);const hs=a.map(s=>s.hp),ds=a.map(s=>s.d);const mnH=Math.min(...hs),spH=Math.max(...hs)-mnH,mnD=Math.min(...ds),spD=Math.max(...ds)-mnD;return (1-(x.hp-mnH)/spH)*.5+((x.d-mnD)/spD)*.5;};
+// win rate by game length (deadlock-api.com analytics, last 30 days at snapshot):
+// e = games under 25 min, m = 25-35 min, lt = over 35 min.
+const WR_LEN_DATE="2026-08-05";
+const WR_LEN={"Abrams":{e:47.7,m:50.2,lt:51.6},"Apollo":{e:51.8,m:50.4,lt:48.6},"Bebop":{e:53,m:46.3,lt:47.1},"Billy":{e:44.9,m:50.1,lt:50.5},"Calico":{e:51.1,m:51.8,lt:50.7},"Celeste":{e:48.1,m:50,lt:49},"Drifter":{e:49.9,m:52,lt:51.7},"Dynamo":{e:51.2,m:52.5,lt:52.1},"Graves":{e:55.9,m:58.6,lt:53.5},"Grey Talon":{e:44.8,m:43.7,lt:48.4},"Haze":{e:47.4,m:50.4,lt:54},"Holliday":{e:52.4,m:49.4,lt:47.4},"Infernus":{e:51.5,m:48.3,lt:49.1},"Ivy":{e:50.6,m:55.2,lt:53.6},"Kelvin":{e:47.6,m:54.1,lt:54.1},"Lady Geist":{e:55.6,m:54.2,lt:49.5},"Lash":{e:53.1,m:53.7,lt:51.4},"McGinnis":{e:54.9,m:56.9,lt:51.8},"Mina":{e:45.8,m:41.5,lt:46.2},"Mirage":{e:51.7,m:46.1,lt:47.7},"Mo & Krill":{e:55.5,m:52.1,lt:50.9},"Paige":{e:54.6,m:54.7,lt:52.7},"Paradox":{e:42.8,m:44.5,lt:48.4},"Pocket":{e:46.1,m:43.5,lt:47.8},"Rem":{e:49.3,m:46.1,lt:47.1},"Seven":{e:53.3,m:58.5,lt:53.2},"Shiv":{e:47.9,m:48.2,lt:47.8},"Silver":{e:48.2,m:44.2,lt:45.6},"Sinclair":{e:41.4,m:41,lt:46.2},"The Doorman":{e:45.9,m:47,lt:49.3},"Venator":{e:50.3,m:45.3,lt:45.4},"Victor":{e:49.7,m:52.8,lt:56.3},"Vindicta":{e:53.5,m:51.2,lt:50.5},"Viscous":{e:47.1,m:46,lt:48},"Vyper":{e:45.9,m:46.9,lt:48.7},"Warden":{e:53,m:52.5,lt:49.8},"Wraith":{e:47.4,m:49.5,lt:50.3},"Yamato":{e:49.2,m:49.9,lt:49.4}};
+// live "what items beat this hero" queries need the api's hero and item ids
+const HERO_API_IDS={"Infernus":1,"Seven":2,"Vindicta":3,"Lady Geist":4,"Abrams":6,"Wraith":7,"McGinnis":8,"Paradox":10,"Dynamo":11,"Kelvin":12,"Haze":13,"Holliday":14,"Bebop":15,"Calico":16,"Grey Talon":17,"Mo & Krill":18,"Shiv":19,"Ivy":20,"Warden":25,"Yamato":27,"Lash":31,"Viscous":35,"Pocket":50,"Mirage":52,"Vyper":58,"Sinclair":60,"Mina":63,"Drifter":64,"Venator":65,"Victor":66,"Paige":67,"The Doorman":69,"Billy":72,"Graves":76,"Apollo":77,"Rem":79,"Silver":80,"Celeste":81};
+const ITEM_API_IDS={"Bullet Resilience":3140772621,"Capacitor":710436191,"Cold Front":1976391348,"Colossus":2407781327,"Counterspell":1414025773,"Cursed Relic":2617435668,"Debuff Reducer":1047818222,"Decay":3144988365,"Disarming Hex":2061878743,"Dispel Magic":3731635960,"Enduring Speed":2447176615,"Ethereal Shift":2533252781,"Extra Stamina":4139877411,"Fortitude":3585132399,"Grit":1672893796,"Healbane":2603935618,"Healing Rite":1710079648,"Indomitable":951866250,"Inhibitor":2037039379,"Knockdown":1254091416,"Majestic Leap":600033864,"Metal Skin":1378931225,"Monster Rounds":1009965641,"Phantom Strike":1371725689,"Plated Armor":3491236900,"Reactive Barrier":1644605047,"Rebuttal":4204808176,"Rescue Beam":1804594021,"Return Fire":3361075077,"Ricochet":2480592370,"Rusted Barrel":2922054143,"Silence Wave":619484391,"Siphon Bullets":1282141666,"Slowing Bullets":393974127,"Slowing Hex":1813726886,"Spellbreaker":1955841979,"Spirit Burn":343572757,"Spirit Resilience":2163598980,"Spirit Shielding":112198670,"Suppressor":1925087134,"Tesla Bullets":811521119,"Toxic Bullets":3696726732,"Unstoppable":3357231760,"Warp Stone":3270001687,"Weapon Shielding":805079544};
 const COUNTER_ITEMS = {
 "Abrams":[["Healbane","V","Your damage cuts his Infernal Resilience regen and Siphon Life healing"],["Toxic Bullets","W","Bleed + heal reduction melts his regen-tank playstyle"],["Slowing Bullets","W","Kite him — he has to walk into melee range"],["Reactive Barrier","V","Free barrier the moment his charge stuns you"],["Rebuttal","V","Cheap parry power — heal and hit back when he swings"],["Inhibitor","V","Late-game anti-heal that also cuts his damage by 30%"],["Siphon Bullets","V","Steal chunks of his giant HP pool late game"],["Slowing Hex","S","Blocks both his charge and his ult leap"],["Cursed Relic","S","Interrupts his ult and silences the whole brawl kit"],["Spirit Resilience","V","Softens Siphon Life and Shoulder Charge damage"],["Colossus","V","Pop it when he dives — dual resist + dash slow wins the melee duel"],["Unstoppable","V","Immune to Shoulder Charge and ult CC"],["Decay","S","Melts his big HP pool and halves all his healing"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
 "Apollo":[["Slowing Hex","S","Blocks his lunge abilities — a grounded Apollo is a sitting duck"],["Cold Front","S","AoE slow punishes him for entering blade range"],["Ethereal Shift","S","Dodge the mega-slash — good stall, but Counterspell is the cheaper answer"],["Silence Wave","S","Removes his whole kit for 3 seconds"],["Spirit Resilience","V","Blunts his spirit burst"],["Spirit Shielding","V","Shield up against his spirit burst"],["Counterspell","V","His abilities and ult are heavily telegraphed — parry them"],["Capacitor","W","Late-game pick — the active's huge slow blocks stamina and movement abilities"]],
@@ -982,11 +999,7 @@ function cpRender(){
       const avg=(duo[0].net+duo[1].net)/2;
       const [verdict,vc]= avg>=6?['NASTY LANE','var(--re)'] : avg>=2?['STRONG LANE','var(--or)'] : avg>=-3?['AVERAGE LANE','var(--am)'] : ['WEAK LANE — PUNISH THEM','var(--gr)'];
       const fmt=v=>(v>0?'+':'')+v;
-      // squish score: low base HP + high lane deaths, each normalized across the roster
-      const allS=Object.values(LANE_STATS);
-      const hps=allS.map(s=>s.hp), dss=allS.map(s=>s.d);
-      const mnH=Math.min(...hps), spH=Math.max(...hps)-mnH, mnD=Math.min(...dss), spD=Math.max(...dss)-mnD;
-      const sq=x=>(1-(x.hp-mnH)/spH)*.5+((x.d-mnD)/spD)*.5;
+      const sq=cpSquish;
       const [a,b]=duo, gap=Math.abs(sq(a)-sq(b));
       const foc=gap>=0.15?(sq(a)>sq(b)?a:b):null;
       const statRow=x=>{
@@ -1002,13 +1015,46 @@ function cpRender(){
         if(foc.d-other.d>=0.3) parts.push(`dies ${(foc.d-other.d).toFixed(1)} more per lane`);
         focusLine=`<span class="cp-lane-focus">🎯 FOCUS ${foc.n.toUpperCase()} — ${parts.length?parts.join(', '):'noticeably squishier'}. Dump damage cooldowns there.</span>`;
       }
-      laneHTML=`<div class="cp-lane" style="border-left:3px solid ${vc}">
+          laneHTML=`<div class="cp-lane" style="border-left:3px solid ${vc}">
         <span class="cp-lane-title">⚔ ENEMY<br>LANE DUO</span>
         ${duo.map(x=>`<span class="cp-lane-hero"><img src="${IMGS[x.n]||''}"><span><span class="lnm">${x.n}</span> ${fmt(x.net)} <span class="lt lt-${laneTier(x.w)}">${laneTier(x.w)}</span><br><span class="lq lq-${x.q}">${LANE_Q[x.q]||''}</span></span></span>`).join('<span class="cp-lane-plus">+</span>')}
         <span class="cp-lane-verdict" style="color:${vc}">${verdict}</span>
         <span class="cp-lane-src" title="Lane wins minus losses (percent of lanes, 9-minute mark, 10%+ net worth lead = win — the rest are draws). Positive = wins lane more than loses it. Playstyle tag from the souls-vs-damage quadrant chart.">lane W−L @9min<br>statlocker.gg · ${LANE_DATE}</span>
         <div class="cp-lane-stats">${statRow(a)}${statRow(b)}</div>
         ${focusLine}
+      </div>`;
+    }
+  }
+  // whole-comp readout at 3+ selected: win % by game length, damage lean, softest target, live best items
+  let compHTML='';
+  if(cpSel.length>=3){
+    const team=cpSel.map(n=>({n,...(LANE_STATS[n]||{}),...(WR_LEN[n]||{})})).filter(x=>x.e!=null&&x.hp!=null);
+    if(team.length>=3){
+      const avg=k=>+(team.reduce((s,x)=>s+x[k],0)/team.length).toFixed(1);
+      const e=avg('e'), m=avg('m'), lt=avg('lt');
+      let verdict,vc;
+      if(lt-e>=2){verdict='OUTSCALES YOU — END IT EARLY';vc='var(--re)';}
+      else if(e-lt>=2){verdict='FALLS OFF — DRAG IT LONG';vc='var(--gr)';}
+      else if(m>=e+1.5&&m>=lt+1.5){verdict='MID-GAME SPIKE — WEATHER 25–35';vc='var(--am)';}
+      else {verdict='FLAT POWER CURVE';vc='var(--mu)';}
+      const hot=Math.max(e,m,lt);
+      const scaler=[...team].sort((x,y)=>(y.lt-y.e)-(x.lt-x.e))[0];
+      const scLine=(scaler.lt-scaler.e)>=4?`<span class="cc-note">📈 <b>${scaler.n}</b> +${(scaler.lt-scaler.e).toFixed(1)}% in long games — shut the farm down</span>`:'';
+      const SP=['Spirit Resilience','Spirit Shielding','Spellbreaker'], GN=['Bullet Resilience','Metal Skin','Plated Armor','Return Fire','Suppressor'];
+      let sN=0,bN=0; cpSel.forEach(n=>{ const its=getItems(n).map(x=>x[0]); if(its.some(i=>SP.includes(i))) sN++; if(its.some(i=>GN.includes(i))) bN++; });
+      const dmg= sN>bN+1?`mostly <b style="color:${TC.S}">spirit</b> damage — lean spirit resist`
+               : bN>sN+1?`mostly <b style="color:${TC.W}">gun</b> damage — lean bullet resist`
+               : `mixed damage — split your resists`;
+      const soft=[...team].sort((x,y)=>cpSquish(y)-cpSquish(x))[0];
+      compHTML=`<div class="cp-comp" style="border-left:3px solid ${vc}">
+        <span class="cp-lane-title">📊 WHOLE<br>COMP</span>
+        <span class="cc-wr${hot===e?' hot':''}">&lt;25min <b>${e}%</b></span>
+        <span class="cc-wr${hot===m?' hot':''}">25–35 <b>${m}%</b></span>
+        <span class="cc-wr${hot===lt?' hot':''}">35+ <b>${lt}%</b></span>
+        <span class="cp-lane-verdict" style="color:${vc}">${verdict}</span>
+        <span class="cp-lane-src" title="Average of each selected hero's win rate in games of that length (red = their strongest window). deadlock-api.com, ranked + unranked, last 30 days at snapshot.">win % by game length<br>deadlock-api · ${WR_LEN_DATE}</span>
+        <div class="cc-row">${scLine}<span class="cc-note">💥 ${dmg}</span><span class="cc-note">🎯 softest target: <b>${soft.n}</b></span></div>
+        <div class="cc-items" id="cc-items">⏳ checking live item win rates vs this comp…</div>
       </div>`;
     }
   }
@@ -1055,6 +1101,7 @@ function cpRender(){
     <button class="cp-clear" onclick="cpSel=[];cpGroup=null;cpHeroF=null;renderGrid();cpRender()">✕ Clear</button>
   </div>
   ${laneHTML}
+  ${compHTML}
   ${chips}
   <div class="two">
     ${cpCol('Early game &middot; 1,600 &amp; under', early)}
@@ -1062,6 +1109,37 @@ function cpRender(){
   </div>${cpSuggestHTML()}`;
   restore();
   balanceChips();
+  if(compHTML) cpFillTopItems();
+}
+// live "best items vs this comp": one deadlock-api query per hero (cached), averaged across the selection
+const __ccHeroCache={};
+async function cpFillTopItems(){
+  const key=cpSel.slice().sort().join('|');
+  try{
+    await Promise.all(cpSel.map(async n=>{
+      if(__ccHeroCache[n]) return;
+      const id=HERO_API_IDS[n]; if(!id){ __ccHeroCache[n]={}; return; }
+      const r=await fetch(`https://api.deadlock-api.com/v1/analytics/item-stats?enemy_hero_ids=${id}&min_matches=10000`);
+      const rows=await r.json();
+      const byId={}; Object.entries(ITEM_API_IDS).forEach(([nm,iid])=>byId[iid]=nm);
+      const wr={}; rows.forEach(x=>{ const nm=byId[x.item_id]; if(nm) wr[nm]={wr:100*x.wins/x.matches, m:x.matches}; });
+      __ccHeroCache[n]=wr;
+    }));
+    const el=document.getElementById('cc-items');
+    if(!el || cpSel.slice().sort().join('|')!==key) return; // selection changed mid-flight
+    const agg={};
+    Object.keys(ITEM_API_IDS).forEach(nm=>{
+      const per=cpSel.map(n=>(__ccHeroCache[n]||{})[nm]).filter(Boolean);
+      if(per.length===cpSel.length) agg[nm]={wr:per.reduce((s,x)=>s+x.wr,0)/per.length, m:Math.min(...per.map(x=>x.m))};
+    });
+    const top=Object.entries(agg).sort((x,y)=>y[1].wr-x[1].wr).slice(0,3);
+    el.innerHTML=top.length
+      ? '🏆 best items vs this comp (live): '+top.map(([nm,v])=>`<span class="cc-item" title="avg win rate of matches where a player bought ${nm} against each of these heroes — deadlock-api, last 30 days">${nm} <b>${v.wr.toFixed(1)}%</b></span>`).join(' · ')
+      : '';
+  }catch(err){
+    const el=document.getElementById('cc-items');
+    if(el) el.innerHTML='';
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
