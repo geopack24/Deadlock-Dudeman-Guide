@@ -185,7 +185,11 @@ textarea.notes-edit{width:100%;background:var(--sf);border:.5px solid var(--or);
 .cp-why img{width:22px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .cp-why .w-hero{font-weight:500;color:var(--tx)}
 .cp-why .w-text{color:var(--mu)}
-.chalk-compact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:#2d4a2d;color:rgba(255,255,255,.55);font-size:12px;font-style:italic}
+.chalk-compact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:8px 12px;background:#2d4a2d;color:rgba(255,255,255,.55);font-size:12px}
+.chalk-mini-cell{display:flex;align-items:center;gap:7px}
+.chalk-compact .dudephoto-wrap img{width:42px;height:42px}
+.chalk-compact .dudephoto-wrap div{font-size:8px !important;letter-spacing:1px !important;margin-top:1px !important}
+.chalk-compact-hint{font-style:italic;font-size:11px;margin-left:auto}
 .chalk-mini{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:inherit}
 .chalk-mini:hover{color:#fff;border-color:rgba(255,255,255,.45)}
 .chalk-claude{font-size:9px;font-family:'IBM Plex Mono',monospace;font-style:normal;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:4px}
@@ -729,8 +733,9 @@ function renderChalk() {
 
   const allEmpty = CHALK_MEMBERS.every(m => !(binData.goals[m.key]||'').trim() && !(chalkEditing[m.key] && chalkUnlocked(m.key)));
   if(allEmpty){
-    cols.innerHTML = `<div class="chalk-compact">Nothing on the board yet —
-      ${CHALK_MEMBERS.map(m=>`<button class="chalk-mini" onclick="${chalkUnlocked(m.key)?`startGoalEdit('${m.key}')`:`openModal('${m.modalTarget}')`}">✏️ ${m.label}</button>`).join('')}</div>`;
+    cols.innerHTML = `<div class="chalk-compact">
+      ${CHALK_MEMBERS.map(m=>`<span class="chalk-mini-cell">${memberPhotoHTML(m.key)}<button class="chalk-mini" onclick="${chalkUnlocked(m.key)?`startGoalEdit('${m.key}')`:`openModal('${m.modalTarget}')`}">✏️ ${m.label}</button></span>`).join('')}
+      <span class="chalk-compact-hint">board's empty — slots blank over a day get a Claude focus</span></div>`;
   } else
   cols.innerHTML = CHALK_MEMBERS.map(m => {
     const goal = (binData.goals[m.key]||'').trim();
