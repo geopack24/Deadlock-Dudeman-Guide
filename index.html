@@ -996,13 +996,21 @@ function heroCombo(id,o){
     inp.value=v||''; list.style.display='none';
   };
   const pickN=n=>{ o.set(n); sync(); syncCombos(); };
+  const nextCombo=()=>{ // jump to the next empty hero slot, in page order
+    const all=[...document.querySelectorAll('.hcombo')];
+    for(let j=all.indexOf(root)+1;j<all.length;j++){
+      const n=all[j].querySelector('.hc-in');
+      if(n&&!n.value){ n.focus(); return; }
+    }
+    inp.blur(); // last slot filled — nothing left to jump to
+  };
   inp.addEventListener('focus',()=>{ inp.select(); idx=0; openList(''); });
   inp.addEventListener('input',()=>{ idx=0; openList(inp.value.trim().toLowerCase()); });
   inp.addEventListener('keydown',e=>{
     const q=inp.value.trim().toLowerCase();
     if(e.key==='ArrowDown'){ e.preventDefault(); idx=Math.min(idx+1,Math.max(0,items.length-1)); openList(q); }
     else if(e.key==='ArrowUp'){ e.preventDefault(); idx=Math.max(idx-1,0); openList(q); }
-    else if(e.key==='Enter'){ e.preventDefault(); if(items.length){ pickN(items[idx]); inp.blur(); } }
+    else if(e.key==='Enter'){ e.preventDefault(); if(items.length){ pickN(items[idx]); nextCombo(); } }
     else if(e.key==='Escape'){ sync(); inp.blur(); }
   });
   inp.addEventListener('blur',()=>setTimeout(sync,150));
