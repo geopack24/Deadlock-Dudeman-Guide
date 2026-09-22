@@ -1,12 +1,12 @@
 # DUDELOCK PARRY TRAINER
 # ======================
-# Plays the heavy-melee cue at random intervals and grades how fast you parry.
-# Runs on any Windows machine - no installs, no admin, no Python.
+# Plays Deadlock's heavy-melee cue at random intervals and grades how fast you
+# parry - with an instant good/bad sound so you never have to look at this
+# window while you play.
 #
-# Why this is a local script and not a page on the site: a browser cannot read
-# your keyboard while Deadlock has focus. Windows can, through GetAsyncKeyState,
-# which is what this polls. Start it, alt-tab into Deadlock, and it keeps
-# listening while you play.
+# Runs on any Windows machine: no installs, no admin, no Python. It has to be a
+# local script rather than a page on the site because a browser cannot read your
+# keyboard while Deadlock has focus. Windows can, through GetAsyncKeyState.
 
 Add-Type -Name Keys -Namespace Dudelock -MemberDefinition @'
 [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
@@ -17,7 +17,8 @@ Add-Type -Name Keys -Namespace Dudelock -MemberDefinition @'
 $root       = $PSScriptRoot
 $configPath = Join-Path $root 'parry_config.json'
 $heavyPath  = Join-Path $root 'heavy_melee.wav'
-$lightPath  = Join-Path $root 'light_melee.wav'
+$goodPath   = Join-Path $root 'good.wav'
+$badPath    = Join-Path $root 'bad.wav'
 
 # ---------------------------------------------------------------- key names --
 $VkNames = @{
@@ -30,9 +31,9 @@ $VkNames = @{
   186=';'; 187='='; 188=','; 189='-'; 190='.'; 191='/'; 192='`'
   219='['; 220='\'; 221=']'; 222="'"
 }
-48..57  | ForEach-Object { $VkNames[$_] = [char]$_ }           # 0-9
-65..90  | ForEach-Object { $VkNames[$_] = [char]$_ }           # A-Z
-1..12   | ForEach-Object { $VkNames[111 + $_] = "F$_" }        # F1-F12
+48..57  | ForEach-Object { $VkNames[$_] = [char]$_ }
+65..90  | ForEach-Object { $VkNames[$_] = [char]$_ }
+1..12   | ForEach-Object { $VkNames[111 + $_] = "F$_" }
 
 function Get-VkName([int]$vk) {
   if ($VkNames.ContainsKey($vk)) { return [string]$VkNames[$vk] }
@@ -43,11 +44,18 @@ function Test-KeyDown([int]$vk) {
   return ([Dudelock.Keys]::GetAsyncKeyState($vk) -band 0x8000) -ne 0
 }
 
+function New-Player([string]$path) {
+  if (-not (Test-Path $path)) { return $null }
+  $p = New-Object System.Media.SoundPlayer
+  $p.SoundLocation = $path
+  try { $p.Load(); return $p } catch { return $null }
+}
+
 # ------------------------------------------------------------------- config --
 function Get-Config {
   $cfg = [ordered]@{
     parry_vk = 0; parry_label = ''; min_delay = 5.0; max_delay = 30.0
-    window = 600; decoys = $true; decoy_chance = 0.35
+    window = 600; feedback = $true
   }
   if (Test-Path $configPath) {
     try {
@@ -67,7 +75,6 @@ function Save-Config($cfg) {
 function Read-ParryKey {
   Write-Host ''
   Write-Host '  Press the key you use to PARRY in Deadlock (Esc cancels)...' -ForegroundColor Yellow
-  # wait for a clean slate so we catch a fresh press
   $held = $true
   while ($held) {
     $held = $false
@@ -95,44 +102,37 @@ function Start-Session($cfg) {
   $windowMs = [double]$cfg.window
   $lo       = [double]$cfg.min_delay
   $hi       = [double]$cfg.max_delay
-  $useDecoy = ([bool]$cfg.decoys) -and (Test-Path $lightPath)
+  $useFb    = [bool]$cfg.feedback
 
-  $heavy = New-Object System.Media.SoundPlayer
-  $heavy.SoundLocation = $heavyPath
-  try { $heavy.Load() } catch { Write-Host "  Could not load heavy_melee.wav" -ForegroundColor Red; return }
-  $light = $null
-  if ($useDecoy) {
-    $light = New-Object System.Media.SoundPlayer
-    $light.SoundLocation = $lightPath
-    try { $light.Load() } catch { $useDecoy = $false }
-  }
+  $heavy = New-Player $heavyPath
+  if ($null -eq $heavy) { Write-Host '  Could not load heavy_melee.wav' -ForegroundColor Red; return }
+  $good = $null; $bad = $null
+  if ($useFb) { $good = New-Player $goodPath; $bad = New-Player $badPath }
 
-  $decoyLine = 'off'
-  if ($useDecoy) { $decoyLine = 'ON - ignore the short snappy sound' }
+  $fbLine = 'off'
+  if ($useFb -and $good -and $bad) { $fbLine = 'on - chime = parried, buzz = missed' }
 
   Write-Host ''
   Write-Host ('  ' + ('=' * 60)) -ForegroundColor DarkYellow
   Write-Host '   TRAINING - alt-tab into Deadlock now, this keeps listening.' -ForegroundColor Yellow
   Write-Host ("   Parry key : $label")
   Write-Host ('   Cue every : {0:N0} - {1:N0} s   |   window: {2:N0} ms' -f $lo, $hi, $windowMs)
-  Write-Host ("   Decoys    : $decoyLine")
+  Write-Host ("   Feedback  : $fbLine")
   Write-Host '   Quit      : hold Esc'
   Write-Host ('  ' + ('=' * 60)) -ForegroundColor DarkYellow
   Write-Host ''
 
-  # ask Windows for 1 ms timer resolution so reaction times are honest
-  # (default is ~15 ms, which would smear every measurement)
+  # 1 ms timer resolution, otherwise Windows rounds to ~15 ms and smears every
+  # reaction time we report
   [void][Dudelock.Keys]::timeBeginPeriod(1)
 
-  $rng     = New-Object System.Random
-  $watch   = [System.Diagnostics.Stopwatch]::StartNew()
-  $hits = 0; $misses = 0; $early = 0; $baited = 0
-  $times   = New-Object System.Collections.ArrayList
+  $rng   = New-Object System.Random
+  $watch = [System.Diagnostics.Stopwatch]::StartNew()
+  $hits = 0; $misses = 0; $early = 0
+  $times = New-Object System.Collections.ArrayList
 
-  # first cue lands quickly so you are not staring at a blank screen
   $nextCue = $watch.Elapsed.TotalMilliseconds + ($rng.NextDouble() * 3000 + 2000)
   $armedAt = -1.0
-  $isDecoy = $false
   $wasDown = Test-KeyDown $vk
   $rep     = 0
 
@@ -147,25 +147,18 @@ function Start-Session($cfg) {
     if ($armedAt -ge 0) {
       $elapsed = $now - $armedAt
       if ($pressed) {
-        if ($isDecoy) {
-          $baited++
-          Write-Host ('  [{0:D2}] BAITED   - that was a light melee, hands off' -f $rep) -ForegroundColor Magenta
-        } else {
-          $hits++
-          [void]$times.Add($elapsed)
-          Write-Host ('  [{0:D2}] PARRIED  - {1:N0} ms' -f $rep, $elapsed) -ForegroundColor Green
-        }
+        $hits++
+        [void]$times.Add($elapsed)
+        if ($good) { $good.Play() }
+        Write-Host ('  [{0:D2}] PARRIED  - {1:N0} ms' -f $rep, $elapsed) -ForegroundColor Green
         $armedAt = -1.0
         $nextCue = $now + ($rng.NextDouble() * ($hi - $lo) + $lo) * 1000
         continue
       }
       if ($elapsed -ge $windowMs) {
-        if ($isDecoy) {
-          Write-Host ('  [{0:D2}] ignored  - good, that was a decoy' -f $rep) -ForegroundColor DarkGray
-        } else {
-          $misses++
-          Write-Host ('  [{0:D2}] MISSED   - no parry inside {1:N0} ms' -f $rep, $windowMs) -ForegroundColor Red
-        }
+        $misses++
+        if ($bad) { $bad.Play() }
+        Write-Host ('  [{0:D2}] MISSED   - no parry inside {1:N0} ms' -f $rep, $windowMs) -ForegroundColor Red
         $armedAt = -1.0
         $nextCue = $now + ($rng.NextDouble() * ($hi - $lo) + $lo) * 1000
         continue
@@ -173,14 +166,14 @@ function Start-Session($cfg) {
     }
     elseif ($pressed) {
       $early++
+      if ($bad) { $bad.Play() }
       Write-Host ('       early    - parried at nothing ({0} total)' -f $early) -ForegroundColor DarkYellow
     }
 
     if ($armedAt -lt 0 -and $now -ge $nextCue) {
       $rep++
-      $isDecoy = $useDecoy -and ($rng.NextDouble() -lt [double]$cfg.decoy_chance)
       $armedAt = $watch.Elapsed.TotalMilliseconds
-      if ($isDecoy) { $light.Play() } else { $heavy.Play() }
+      $heavy.Play()
     }
 
     [System.Threading.Thread]::Sleep(1)
@@ -207,15 +200,10 @@ function Start-Session($cfg) {
       Write-Host '              solid - drop the window toward 400 ms to push it' -ForegroundColor Green
     }
   }
-  if ($baited -gt 0) {
-    Write-Host ('   Baited   : {0}  (parried a light melee - the habit that gets you killed)' -f $baited) -ForegroundColor Magenta
-  }
   if ($early -gt 0) {
     Write-Host ('   Early    : {0}  (parried with no cue at all)' -f $early) -ForegroundColor DarkYellow
   }
-  if ($real -eq 0 -and $early -eq 0 -and $baited -eq 0) {
-    Write-Host '   No reps logged.'
-  }
+  if ($real -eq 0 -and $early -eq 0) { Write-Host '   No reps logged.' }
   Write-Host ('  ' + ('=' * 60)) -ForegroundColor DarkYellow
   Write-Host ''
 }
@@ -227,7 +215,7 @@ Write-Host '   ----------------------------------------------' -ForegroundColor 
 
 if (-not (Test-Path $heavyPath)) {
   Write-Host ''
-  Write-Host "  Missing heavy_melee.wav next to this script." -ForegroundColor Red
+  Write-Host '  Missing heavy_melee.wav next to this script.' -ForegroundColor Red
   Read-Host '  Press Enter to close'
   exit
 }
@@ -240,20 +228,20 @@ if ([int]$cfg.parry_vk -eq 0) {
   $cfg.parry_vk    = $vk
   $cfg.parry_label = Get-VkName $vk
   Save-Config $cfg
-  Write-Host ("  Parry key set to: " + $cfg.parry_label) -ForegroundColor Green
+  Write-Host ('  Parry key set to: ' + $cfg.parry_label) -ForegroundColor Green
 }
 
 while ($true) {
   $lbl = [string]$cfg.parry_label
   if ([string]::IsNullOrEmpty($lbl)) { $lbl = Get-VkName ([int]$cfg.parry_vk) }
-  $decoyState = 'off'
-  if ([bool]$cfg.decoys) { $decoyState = 'on' }
+  $fbState = 'off'
+  if ([bool]$cfg.feedback) { $fbState = 'on' }
 
   Write-Host ''
   Write-Host ("  Parry key : $lbl")
   Write-Host ('  Interval  : {0:N0} - {1:N0} seconds' -f [double]$cfg.min_delay, [double]$cfg.max_delay)
   Write-Host ('  Window    : {0:N0} ms' -f [double]$cfg.window)
-  Write-Host ("  Decoys    : $decoyState")
+  Write-Host ("  Feedback  : $fbState")
   Write-Host ''
   Write-Host '  [Enter] start    [k] change key    [s] settings    [q] quit' -ForegroundColor DarkYellow
   $choice = (Read-Host '  >').Trim().ToLower()
@@ -265,7 +253,7 @@ while ($true) {
       $cfg.parry_vk    = $vk
       $cfg.parry_label = Get-VkName $vk
       Save-Config $cfg
-      Write-Host ("  Parry key set to: " + $cfg.parry_label) -ForegroundColor Green
+      Write-Host ('  Parry key set to: ' + $cfg.parry_label) -ForegroundColor Green
     }
   }
   elseif ($choice -eq 's') {
@@ -275,8 +263,8 @@ while ($true) {
     if ($v) { try { $cfg.max_delay = [math]::Max([double]$cfg.min_delay, [double]$v) } catch { } }
     $v = Read-Host ('  parry window, milliseconds [{0:N0}]' -f [double]$cfg.window)
     if ($v) { try { $cfg.window = [math]::Max(50.0, [double]$v) } catch { } }
-    $v = Read-Host ('  decoy light-melee cues? y/n [{0}]' -f $decoyState)
-    if ($v) { $cfg.decoys = $v.ToLower().StartsWith('y') }
+    $v = Read-Host ('  good/bad feedback sounds? y/n [{0}]' -f $fbState)
+    if ($v) { $cfg.feedback = $v.ToLower().StartsWith('y') }
     Save-Config $cfg
   }
   else { Start-Session $cfg }

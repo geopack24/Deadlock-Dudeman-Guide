@@ -1,10 +1,12 @@
 # Dudelock Parry Trainer
 
-Trains the one thing you can't practice in a real match: hearing the heavy-melee
-cue and parrying on reflex, without parrying at every other sound.
+Trains the one thing you can't drill in a real match: hearing the heavy-melee
+cue and parrying on reflex.
 
-It plays the cue at random intervals (5–30s by default), and grades you — even
-while Deadlock is the focused window.
+It plays the real heavy-melee sound at random intervals (5–30s by default) and
+grades you with an instant good/bad sound — so you never have to look at the
+window while you play. It keeps listening **while Deadlock is the focused
+application**.
 
 ## Run it
 
@@ -12,7 +14,7 @@ while Deadlock is the focused window.
 2. Double-click **`Parry Trainer.bat`**.
 3. Press your parry key when it asks, so it knows what to listen for.
 4. Press Enter to start, then **alt-tab into Deadlock's sandbox** and mess around.
-5. Hit your parry key **only** when you hear the heavy cue.
+5. Parry when you hear the heavy melee.
 6. Hold **Esc** to stop and see your numbers.
 
 No installs. No admin. Works on any Windows machine — it's a PowerShell script
@@ -22,18 +24,30 @@ using built-in Windows calls.
 > from the internet: right-click → Properties → Unblock, or run the `.ps1`
 > directly with `powershell -ExecutionPolicy Bypass -File parry_trainer.ps1`.
 
+## What you'll hear
+
+| Sound | Meaning |
+| --- | --- |
+| Heavy melee | The cue — parry now |
+| **Rising chime** | Parried in time (reaction time logged) |
+| **Low buzz** | Missed the window, or parried with no cue at all |
+
+The feedback sound cuts the cue short, which is intentional — the moment has
+resolved, and you get an unambiguous answer without alt-tabbing.
+
+Turn feedback off in settings if you'd rather train silent.
+
 ## What it measures
 
-| Result | Meaning |
-| --- | --- |
-| **PARRIED** | You hit it inside the window — logs your reaction time in ms |
-| **MISSED** | Heavy cue played, no parry in time |
-| **BAITED** | You parried a *light* melee decoy — the habit that gets you killed |
-| **early** | You parried with no cue at all — spam, punished in real games |
+- **PARRIED** — inside the window, with your reaction time in ms
+- **MISSED** — cue played, no parry in time
+- **early** — parried with nothing on screen; the spam habit that gets punished
 
-At the end you get best / median / average reaction time. For reference, human
-audio reaction time is usually 150–250 ms; anything under 250 ms average is
-genuinely quick.
+At the end you get best / median / average. For reference, human audio reaction
+time is usually 150–250 ms; under 250 ms average is genuinely quick.
+
+Reaction times are honest — the script asks Windows for 1 ms timer resolution
+(the default is ~15 ms, which would smear every measurement).
 
 ## Settings
 
@@ -43,24 +57,21 @@ Press `s` at the menu:
   long and irregular; predictable timing trains the wrong thing.
 - **Window** — how long after the cue still counts (default 600 ms). Tighten it
   toward 400 ms as you improve.
-- **Decoys** — light-melee cues you must ignore (default on). Turn them off only
-  for your first session.
+- **Feedback** — the good/bad sounds (default on).
 
 Saved to `parry_config.json` next to the script.
 
-## Using the real game audio
+## The sounds
 
-The included `heavy_melee.wav` and `light_melee.wav` are synthesized stand-ins so
-the tool works immediately. Training against the **actual** sound is better —
-that's the cue your ears need to learn.
+`heavy_melee.wav` is the real in-game heavy-melee audio, trimmed to its exact
+onset (the source recording had ~260 ms of noise floor in front of it, which
+would have made every cue feel late and inflated every reaction time) and
+normalized so it cuts through game audio.
 
-Replace the files with the real ones, keeping the same names (16-bit PCM WAV):
+`good.wav` and `bad.wav` are synthesized feedback tones, deliberately unlike
+anything in Deadlock so they can't be confused with a real game sound.
 
-- Record it: run Deadlock's sandbox, heavy melee, and capture with any recorder
-  (Audacity, Windows Game Bar, OBS), then trim to just the wind-up and save as WAV.
-- Or extract from the game files with a Source 2 VPK tool.
-
-Anything that plays in Windows Media Player as a WAV will work here.
+To swap any of them, replace the file with a 16-bit PCM WAV of the same name.
 
 ## Why it isn't just a page on the site
 
