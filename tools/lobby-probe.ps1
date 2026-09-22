@@ -1,28 +1,32 @@
 # DUDELOCK LOBBY PROBE  (read-only diagnostic)
 # ============================================
-# One question: does Deadlock's own console.log name ALL TWELVE heroes in a
-# match? If it does, a small watcher can fill the counterpicker automatically
-# and share the comp with the whole party. If it only ever names your own hero,
-# the screenshot scanner stays the best tool and we stop chasing this.
+# One question, and the whole auto-fill idea rests on it:
 #
-# (Statlocker Companion was already ruled out as a source: it reads the game's
-# memory rather than any log, exposes no local port, and never persists the
-# lobby - so there is nothing there for us to read.)
+#   Does Deadlock's console.log name all TWELVE heroes AT MATCH START?
+#
+# If yes, a small watcher can fill the counterpicker the moment a match loads
+# and share it with the party. If the log only ever names your own hero, we drop
+# the idea and the screenshot scanner stays the best tool.
+#
+# Statlocker Companion is already ruled out as a source - it reads the game's
+# memory, exposes no local port, and never saves the lobby anywhere.
 #
 # SETUP, once:
 #   Steam > right-click Deadlock > Properties > Launch Options, add:  -condebug
-#   Then play one REAL match (not sandbox/bots - those log differently).
+#   Play one REAL match (not sandbox/bots - those load differently).
+#   Running it while still in the match is ideal - that proves the timing.
 #
-# Then run this and send the output. It changes nothing; it only reads.
+# Reads only. Changes nothing.
 
 $ErrorActionPreference = 'SilentlyContinue'
 function Note($t) { Write-Host "    $t" -ForegroundColor DarkGray }
+function Head($t) { Write-Host ''; Write-Host "  $t" -ForegroundColor Cyan }
 
 Write-Host ''
 Write-Host '  DUDELOCK LOBBY PROBE' -ForegroundColor Cyan
 Write-Host '  --------------------' -ForegroundColor DarkCyan
 
-# locate Deadlock across all Steam libraries
+# ---- locate Deadlock ----
 $libs = @('C:\Program Files (x86)\Steam')
 $vdf = 'C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf'
 if (Test-Path $vdf) {
@@ -35,11 +39,9 @@ foreach ($l in ($libs | Select-Object -Unique)) {
   $c = Join-Path $l 'steamapps\common\Deadlock'
   if (Test-Path $c) { $game = $c; break }
 }
-
 if (-not $game) {
-  Write-Host ''
-  Write-Host '  Deadlock not found in any Steam library.' -ForegroundColor Red
-  Note 'Find console.log by hand and search it for: Loaded hero'
+  Write-Host ''; Write-Host '  Deadlock not found in any Steam library.' -ForegroundColor Red
+  Note 'Find console.log by hand and search it for:  models/heroes'
   Read-Host '  Press Enter to close'; exit
 }
 Write-Host ''
@@ -48,45 +50,73 @@ Write-Host "  Install: $game" -ForegroundColor Green
 $logs = Get-ChildItem -Path $game -Recurse -Filter 'console.log' | Sort-Object LastWriteTime -Descending
 if (-not $logs) {
   Write-Host '  NO console.log FOUND.' -ForegroundColor Red
-  Note '-condebug is not set. Add it to the launch options (see the top of this'
-  Note 'file), play a match, then run this again.'
+  Note '-condebug is not set. Add it to the launch options (see top of this file),'
+  Note 'play a match, then run this again.'
   Read-Host '  Press Enter to close'; exit
 }
-
 $log = $logs[0]
 Write-Host ("  Log: {0}" -f $log.FullName) -ForegroundColor Green
 Write-Host ("       {0:N0} KB, last written {1}" -f ($log.Length/1KB), $log.LastWriteTime)
 $txt = Get-Content $log.FullName
 Write-Host "       $($txt.Count) lines"
 
-# ---- THE DECISIVE TEST: how many DISTINCT heroes does the log name? ----
-$heroes = @{}
-$txt | Select-String -Pattern 'hero_[a-z0-9_]+' -AllMatches | ForEach-Object {
-  $_.Matches | ForEach-Object { $heroes[$_.Value.ToLower()] = $true }
+# ---- find where the most recent match started, so we can judge TIMING ----
+$startIdx = 0
+for ($i = $txt.Count - 1; $i -ge 0; $i--) {
+  if ($txt[$i] -match 'Precaching \d+ heroes|Lobby \d+ for Match \d+ created|CL: Connected to') { $startIdx = $i; break }
 }
+if ($startIdx -gt 0) {
+  Write-Host ''
+  Write-Host ("  Most recent match-start marker at line {0}:" -f $startIdx) -ForegroundColor Green
+  Note ($txt[$startIdx].Trim() -replace '\s+',' ')
+}
+
+# ---- hero names, BOTH forms ----
+# form A: hero_<name>   (server-side "Loaded hero", GC messages)
+# form B: models/heroes[_wip|_staging]/<name>/   (CLIENT-side model loads - the
+#         one that actually fires at match load, and has no hero_ prefix)
+function HeroSet($lines) {
+  $set = @{}
+  $lines | Select-String -Pattern 'hero_[a-z0-9]+' -AllMatches | ForEach-Object {
+    $_.Matches | ForEach-Object { $set[($_.Value.ToLower() -replace '^hero_','')] = $true }
+  }
+  $lines | Select-String -Pattern 'models/heroes(?:_wip|_staging)?/([a-z0-9_]+)/' -AllMatches | ForEach-Object {
+    $_.Matches | ForEach-Object { $set[$_.Groups[1].Value.ToLower()] = $true }
+  }
+  # strip obvious non-hero tokens
+  'generic','base','template','dummy','test' | ForEach-Object { $set.Remove($_) }
+  return $set
+}
+
+$allSet   = HeroSet $txt
+$sinceSet = if ($startIdx -gt 0) { HeroSet ($txt[$startIdx..($txt.Count-1)]) } else { $allSet }
+
 Write-Host ''
-Write-Host '  =========================================================' -ForegroundColor Yellow
-Write-Host ("   DISTINCT hero_* names in this log: {0}" -f $heroes.Count) -ForegroundColor Cyan
-if ($heroes.Count -ge 10) {
-  Write-Host '   >>> A FULL LOBBY LOOKS RECOVERABLE - this is buildable. <<<' -ForegroundColor Green
-} elseif ($heroes.Count -ge 1) {
-  Write-Host '   >>> Only a few named - likely just your hero. Probably dead. <<<' -ForegroundColor DarkYellow
+Write-Host '  =============================================================' -ForegroundColor Yellow
+Write-Host ("   DISTINCT heroes in whole log      : {0}" -f $allSet.Count) -ForegroundColor Cyan
+Write-Host ("   DISTINCT heroes SINCE match start : {0}   <-- the number that matters" -f $sinceSet.Count) -ForegroundColor Cyan
+Write-Host '  =============================================================' -ForegroundColor Yellow
+if ($sinceSet.Count -ge 10) {
+  Write-Host '   >>> A FULL LOBBY IS IN THE LOG AT MATCH START. BUILDABLE. <<<' -ForegroundColor Green
+} elseif ($allSet.Count -ge 10) {
+  Write-Host '   >>> All 12 appear somewhere, but not clearly at match start -' -ForegroundColor DarkYellow
+  Write-Host '       send the output anyway, the timing may still work. <<<' -ForegroundColor DarkYellow
 } else {
-  Write-Host '   >>> No hero names at all in the log. <<<' -ForegroundColor Red
+  Write-Host '   >>> Not enough heroes named - this route is probably dead. <<<' -ForegroundColor Red
 }
-Write-Host '  =========================================================' -ForegroundColor Yellow
-if ($heroes.Count) { Note (($heroes.Keys | Sort-Object) -join ', ') }
+if ($sinceSet.Count) { Note (($sinceSet.Keys | Sort-Object) -join ', ') }
 
-Write-Host ''
-Write-Host '  Lines naming a hero (last 25) - I need to see their shape:' -ForegroundColor Cyan
-$txt | Select-String -Pattern 'hero_[a-z0-9_]+' | Select-Object -Last 25 |
-  ForEach-Object { Note ($_.Line.Trim() -replace '\s+',' ') }
+Head 'Client-side hero model loads (last 20) - the best signal:'
+$vm = $txt | Select-String -Pattern 'models/heroes(?:_wip|_staging)?/[a-z0-9_]+/'
+if ($vm) { $vm | Select-Object -Last 20 | ForEach-Object { Note ($_.Line.Trim() -replace '\s+',' ') } } else { Note '(none)' }
 
-Write-Host ''
-Write-Host '  Lobby / game-coordinator lines (last 20):' -ForegroundColor Cyan
-$gc = $txt | Select-String -Pattern 'CMsgGC|Lobby \d+|Precaching \d+ heroes|Players:\s+\d+|Loaded hero'
-if ($gc) { $gc | Select-Object -Last 20 | ForEach-Object { Note ($_.Line.Trim() -replace '\s+',' ') } }
-else { Note '(none found)' }
+Head 'Server-side "Loaded hero" lines (last 15):'
+$lh = $txt | Select-String -Pattern 'Loaded hero'
+if ($lh) { $lh | Select-Object -Last 15 | ForEach-Object { Note ($_.Line.Trim() -replace '\s+',' ') } } else { Note '(none - expected on dedicated servers)' }
+
+Head 'Lobby / precache / GC lines (last 20):'
+$gc = $txt | Select-String -Pattern 'CMsgGC|Lobby \d+|Precaching \d+ heroes|Players:\s+\d+'
+if ($gc) { $gc | Select-Object -Last 20 | ForEach-Object { Note ($_.Line.Trim() -replace '\s+',' ') } } else { Note '(none)' }
 
 Write-Host ''
 Write-Host '  Done - copy everything above and send it over.' -ForegroundColor Cyan
