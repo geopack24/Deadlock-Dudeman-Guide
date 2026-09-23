@@ -72,23 +72,35 @@ function Save-Config($cfg) {
   try { ($cfg | ConvertTo-Json) | Set-Content $configPath -Encoding utf8 } catch { }
 }
 
+function Get-HeldKeys {
+  $held = @()
+  foreach ($vk in 1..254) { if (Test-KeyDown $vk) { $held += $vk } }
+  return $held
+}
+
 function Read-ParryKey {
   Write-Host ''
   Write-Host '  Press the key you use to PARRY in Deadlock (Esc cancels)...' -ForegroundColor Yellow
-  $held = $true
-  while ($held) {
-    $held = $false
-    foreach ($vk in 1..254) { if (Test-KeyDown $vk) { $held = $true; break } }
-    if ($held) { [System.Threading.Thread]::Sleep(20) }
+  # Some machines report a key as permanently held (stuck modifier, mouse/keyboard
+  # vendor software, Steam Input, remote desktop). The old version waited for ALL
+  # keys to be up before listening and hung forever on those. Now we snapshot
+  # what's down at the prompt and only accept a key that goes UP -> DOWN after it.
+  $base = @{}
+  foreach ($vk in 1..254) { $base[$vk] = Test-KeyDown $vk }
+  $stuck = @($base.Keys | Where-Object { $base[$_] })
+  if ($stuck.Count -gt 0) {
+    Write-Host ('  (ignoring keys Windows says are already held: ' + (($stuck | Sort-Object | ForEach-Object { Get-VkName $_ }) -join ', ') + ')') -ForegroundColor DarkGray
   }
   while ($true) {
-    if (Test-KeyDown 27) { return 0 }
+    if ((Test-KeyDown 27) -and -not $base[27]) { return 0 }
     foreach ($vk in 1..254) {
       if ($vk -eq 27) { continue }
-      if (Test-KeyDown $vk) {
+      $down = Test-KeyDown $vk
+      if ($down -and -not $base[$vk]) {
         while (Test-KeyDown $vk) { [System.Threading.Thread]::Sleep(10) }
         return $vk
       }
+      if (-not $down) { $base[$vk] = $false }   # released since the prompt -> a fresh press now counts
     }
     [System.Threading.Thread]::Sleep(2)
   }
@@ -243,10 +255,22 @@ while ($true) {
   Write-Host ('  Window    : {0:N0} ms' -f [double]$cfg.window)
   Write-Host ("  Feedback  : $fbState")
   Write-Host ''
-  Write-Host '  [Enter] start    [k] change key    [s] settings    [q] quit' -ForegroundColor DarkYellow
+  Write-Host '  [Enter] start    [k] change key    [s] settings    [d] key diagnostic    [q] quit' -ForegroundColor DarkYellow
   $choice = (Read-Host '  >').Trim().ToLower()
 
   if ($choice -eq 'q') { break }
+  elseif ($choice -eq 'd') {
+    # for debugging "it won't take my key": shows what Windows thinks is held, live
+    Write-Host ''
+    Write-Host '  Watching key state for 8 seconds - press your parry key a few times...' -ForegroundColor Yellow
+    $sw = [System.Diagnostics.Stopwatch]::StartNew(); $last = ''
+    while ($sw.Elapsed.TotalSeconds -lt 8) {
+      $now = ((Get-HeldKeys | ForEach-Object { Get-VkName $_ }) -join ', ')
+      if ($now -ne $last) { Write-Host ('    ' + $sw.Elapsed.ToString('s\.ff') + 's  held: ' + $(if ($now) { $now } else { '(nothing)' })); $last = $now }
+      [System.Threading.Thread]::Sleep(15)
+    }
+    Write-Host '  If a key shows as held the whole time without you touching it, that is the culprit.' -ForegroundColor DarkGray
+  }
   elseif ($choice -eq 'k') {
     $vk = Read-ParryKey
     if ($vk -ne 0) {
