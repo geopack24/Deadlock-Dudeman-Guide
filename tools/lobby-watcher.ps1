@@ -32,7 +32,7 @@ $ErrorActionPreference = 'Continue'
 
 $BIN  = '6ab518a3ffd5d160532a5ec9'
 $KEY  = '$2a$10$xN0NFn7iLT2QLN3kjweAZOo5K77sve8wvXkOJ3JnALA9bmbYScUMS'   # same key the site already ships in its source
-$VER  = 'watcher 1.0'
+$VER  = 'watcher 1.1'
 $DebugFile = Join-Path $PSScriptRoot 'lobby-debug.txt'
 
 # internal class name -> display name (api.deadlock-api.com/v1/assets/heroes, Sep 2026)
@@ -97,12 +97,32 @@ function Payload {
     who=$S.who; myHero=$S.myHero; heroes=$names; keys=$keys; unknown=$unk
   }
 }
+function WhoKey { $k = ("{0}" -f $S.who) -replace '[^\w\- ]','' ; $k = $k.Trim(); if (-not $k) { $k = 'player' }; if ($k.Length -gt 32) { $k = $k.Substring(0,32) }; return $k }
+function CurlExe { return (Get-Command curl.exe -ErrorAction SilentlyContinue) }
+function ReadFeed {
+  # the feed is one record holding a slot per person: { v:2, lobbies: { "<who>": payload } }
+  try {
+    $curl = CurlExe
+    if ($curl) { $raw = & $curl.Source -s -m 20 "https://api.jsonbin.io/v3/b/$BIN/latest" 2>$null }
+    else { $raw = (Invoke-WebRequest -UseBasicParsing -Uri "https://api.jsonbin.io/v3/b/$BIN/latest" -TimeoutSec 30).Content }
+    if (-not $raw) { return $null }
+    $rec = ($raw | ConvertFrom-Json).record
+    $lob = @{}
+    if ($rec -and $rec.lobbies) { foreach ($pr in $rec.lobbies.PSObject.Properties) { $lob[$pr.Name] = $pr.Value } }
+    return $lob
+  } catch { return $null }
+}
 function PublishNow {
   $p = Payload
-  $json = $p | ConvertTo-Json -Compress -Depth 4
+  $lob = ReadFeed
+  if ($lob -eq $null) { $S.lastPub = Get-Date; Write-Host '  publish skipped: could not read the feed (JSONBin slow?) - retrying shortly' -ForegroundColor Red; return }
+  # drop other people's entries older than 6 h so the record never grows
+  $nowMs = [int64]((Get-Date).ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds
+  foreach ($k in @($lob.Keys)) { try { if (($nowMs - [int64]$lob[$k].ts) -gt 21600000) { $lob.Remove($k) } } catch { $lob.Remove($k) } }
+  $lob[(WhoKey)] = $p
+  $json = @{ v=2; ts=$nowMs; lobbies=$lob } | ConvertTo-Json -Compress -Depth 6
   $ok = $false; $err = ''
-  # curl.exe ships with Windows 10+ and is far quicker to connect than Invoke-RestMethod in PowerShell 5.1
-  $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+  $curl = CurlExe
   if ($curl) {
     $tmp = Join-Path $env:TEMP 'dudelock-lobby.json'
     [IO.File]::WriteAllText($tmp, $json, (New-Object Text.UTF8Encoding($false)))
@@ -115,11 +135,11 @@ function PublishNow {
       $ok = $true
     } catch { $err = ($err + ' / ' + $_.Exception.Message).Trim(' /') }
   }
+  $S.lastPub = Get-Date
   if ($ok) {
-    $S.lastPub = Get-Date; $S.dirty = $false
-    Write-Host ("  published: {0} | {1} | me={2} | {3} heroes{4}" -f $S.phase, $S.map, $S.myHero, $p.heroes.Count, $(if ($p.unknown.Count) { " | {0} unknown tokens" -f $p.unknown.Count } else { '' })) -ForegroundColor Yellow
+    $S.dirty = $false
+    Write-Host ("  published as '{0}': {1} | {2} | me={3} | {4} heroes{5}" -f (WhoKey), $S.phase, $S.map, $S.myHero, $p.heroes.Count, $(if ($p.unknown.Count) { " | {0} unknown tokens" -f $p.unknown.Count } else { '' })) -ForegroundColor Yellow
   } else {
-    $S.lastPub = Get-Date   # back off, retry on the next change or in a few seconds
     Write-Host ("  publish failed: {0}" -f $err) -ForegroundColor Red
   }
 }
@@ -255,5 +275,7 @@ while ($true) {
       for ($i = 0; $i -lt $parts.Count - 1; $i++) { ProcessLine $parts[$i] }
     }
   } catch { Write-Host ("  read error: {0}" -f $_.Exception.Message) -ForegroundColor Red }
+  # heartbeat: while in a match, refresh our slot every 60 s so the site never thinks it went stale
+  if ($S.tracking -and -not $NoPublish -and ((Get-Date) - $S.lastPub).TotalSeconds -ge 60) { $S.dirty = $true }
   if ($S.dirty -and -not $NoPublish -and ((Get-Date) - $S.lastPub).TotalSeconds -ge $(if ($S.dirty -and $S.lastPub -gt [DateTime]::MinValue) { 5 } else { 2 })) { PublishNow }
 }
