@@ -32,7 +32,7 @@ $ErrorActionPreference = 'Continue'
 
 $BIN  = '6ab518a3ffd5d160532a5ec9'
 $KEY  = '$2a$10$xN0NFn7iLT2QLN3kjweAZOo5K77sve8wvXkOJ3JnALA9bmbYScUMS'   # same key the site already ships in its source
-$VER  = 'watcher 1.1'
+$VER  = 'watcher 1.2'
 $DebugFile = Join-Path $PSScriptRoot 'lobby-debug.txt'
 
 # internal class name -> display name (api.deadlock-api.com/v1/assets/heroes, Sep 2026)
@@ -158,6 +158,20 @@ $rxWho    = [regex]'"([^"<]+)<\d+><\[U:1:\d+\]>'
 $rxDebug  = [regex]'(?i)hero|heroes/|lobby|match|players:|team|lane|ChangeGameState|Precaching|\[U:1:|CMsgGC|slot'
 $rxNoise  = [regex]'NetworkCodeGen|Creating Bone Masks|Different skeleton|Failed loading resource|hero_builds'
 
+# epoch ms of a log line's own "MM/DD HH:MM:SS" stamp (gaming PC local time), so state recovered
+# from the log tail is dated correctly; falls back to now for lines without a stamp
+function LineEpoch([string]$line) {
+  $m = [regex]::Match($line, '^(\d{2})/(\d{2}) (\d{2}):(\d{2}):(\d{2})')
+  if ($m.Success) {
+    try {
+      $now = Get-Date
+      $dt = Get-Date -Year $now.Year -Month ([int]$m.Groups[1].Value) -Day ([int]$m.Groups[2].Value) -Hour ([int]$m.Groups[3].Value) -Minute ([int]$m.Groups[4].Value) -Second ([int]$m.Groups[5].Value) -Millisecond 0
+      if ($dt -gt $now.AddDays(1)) { $dt = $dt.AddYears(-1) }   # a December line read in January
+      return [int64]($dt.ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds
+    } catch {}
+  }
+  return [int64]((Get-Date).ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds
+}
 function ProcessLine([string]$line) {
   if (-not $line) { return }
   $m = $rxMap.Match($line)
@@ -174,7 +188,7 @@ function ProcessLine([string]$line) {
   if ($m.Success) {
     $st = $m.Groups[1].Value
     if ($st -eq 'HeroSelection') { StartMatch 'hero selection' }
-    if ($S.tracking) { $S.phase = $st; $S.dirty = $true; if ($st -eq 'GameInProgress' -and -not $S.liveAt) { $S.liveAt = [int64]((Get-Date).ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds } }
+    if ($S.tracking) { $S.phase = $st; $S.dirty = $true; if ($st -eq 'GameInProgress' -and -not $S.liveAt) { $S.liveAt = LineEpoch $line } }
   }
   if ($line -match 'Disconnecting from server' -and $line -notmatch 'LOOPDEACTIVATE') { EndMatch 'disconnected'; return }
   if ($line -match 'LoopMode:\s*menu') { EndMatch 'menu'; return }
