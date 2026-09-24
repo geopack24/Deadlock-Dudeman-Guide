@@ -78,7 +78,7 @@ function StartMatch([string]$why) {
   # the hideout runs its own local server and walks the same game states - never treat that as a match
   if ($why -notlike 'map*' -and $HIDEOUT -contains $S.map) { return }
   $S.tracking = $true; $S.phase = 'starting'; $S.heroes.Clear(); $S.unknown = @{}; $S.myHero = $null
-  $S.started = Get-Date; $S.dirty = $true; $S.debugLines = 0
+  $S.started = Get-Date; $S.dirty = $true; $S.debugLines = 0; $S.liveAt = $null
   try { Set-Content -Path $DebugFile -Value ("# DUDELOCK lobby debug - match started {0} ({1})" -f (Get-Date), $why) -Encoding UTF8 } catch {}
   Write-Host ''; Write-Host ("  >> MATCH TRACKING ON  ({0})" -f $why) -ForegroundColor Cyan
 }
@@ -94,7 +94,7 @@ function Payload {
   return @{
     v=1; src=$VER; ts=[int64]((Get-Date).ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds
     phase=$S.phase; map=$S.map; matchId=$S.matchId; players=$S.players
-    who=$S.who; myHero=$S.myHero; heroes=$names; keys=$keys; unknown=$unk
+    who=$S.who; myHero=$S.myHero; heroes=$names; keys=$keys; unknown=$unk; liveAt=$S.liveAt
   }
 }
 function WhoKey { $k = ("{0}" -f $S.who) -replace '[^\w\- ]','' ; $k = $k.Trim(); if (-not $k) { $k = 'player' }; if ($k.Length -gt 32) { $k = $k.Substring(0,32) }; return $k }
@@ -174,7 +174,7 @@ function ProcessLine([string]$line) {
   if ($m.Success) {
     $st = $m.Groups[1].Value
     if ($st -eq 'HeroSelection') { StartMatch 'hero selection' }
-    if ($S.tracking) { $S.phase = $st; $S.dirty = $true }
+    if ($S.tracking) { $S.phase = $st; $S.dirty = $true; if ($st -eq 'GameInProgress' -and -not $S.liveAt) { $S.liveAt = [int64]((Get-Date).ToUniversalTime() - [DateTime]'1970-01-01').TotalMilliseconds } }
   }
   if ($line -match 'Disconnecting from server' -and $line -notmatch 'LOOPDEACTIVATE') { EndMatch 'disconnected'; return }
   if ($line -match 'LoopMode:\s*menu') { EndMatch 'menu'; return }
