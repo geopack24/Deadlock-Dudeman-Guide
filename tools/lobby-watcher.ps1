@@ -155,7 +155,7 @@ $rxModel  = [regex]'(?i)models/heroes(?:_wip|_staging)?/([a-z0-9_]+)/'
 $rxLoaded = [regex]'Loaded hero \d+/hero_([a-z0-9_]+)'
 $rxBot    = [regex]'Created bot \d+/hero_([a-z0-9_]+)'
 $rxWho    = [regex]'"([^"<]+)<\d+><\[U:1:\d+\]>'
-$rxDebug  = [regex]'(?i)hero|heroes/|lobby|match|players:|team|lane|ChangeGameState|Precaching|\[U:1:|CMsgGC|slot'
+$rxDebug  = [regex]'(?i)hero|heroes/|lobby|match|players:|team|lane|ChangeGameState|Precaching|\[U:1:|CMsgGC|slot|paus|resume|horn|countdown'
 $rxNoise  = [regex]'NetworkCodeGen|Creating Bone Masks|Different skeleton|Failed loading resource|hero_builds'
 
 # epoch ms of a log line's own "MM/DD HH:MM:SS" stamp (gaming PC local time), so state recovered
