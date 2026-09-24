@@ -79,9 +79,11 @@ if ($maps) {
   Write-Host ''
   Write-Host ("  Last map loaded: {0}" -f $lastMap) -ForegroundColor Green
   if ($players) { Note ($players[-1].Line.Trim() -replace '.*\[Client\] ','') }
-  if ($lastMap -match 'hideout|sandbox|tutorial|test|lab') {
+  # the real match map is 'street_test', so match on hub/sandbox names only, then on head count
+  $nPlayers = if ($players) { [int]$players[-1].Matches[0].Groups[1].Value } else { -1 }
+  if ($lastMap -match 'hideout|sandbox|tutorial' -or ($nPlayers -ge 0 -and $nPlayers -lt 10)) {
     Write-Host ''
-    Write-Host '  >>> THIS LOG IS FROM THE HIDEOUT / SANDBOX, NOT A REAL MATCH. <<<' -ForegroundColor Red
+    Write-Host '  >>> THIS LOG IS FROM THE HIDEOUT / SANDBOX / A PARTIAL LOBBY, NOT A REAL MATCH. <<<' -ForegroundColor Red
     Note 'Hero names below are just the hideout display characters and bots.'
     Note 'Queue a real match (any mode with 12 players), then run this again -'
     Note 'ideally while still in the match, or right after it ends.'
