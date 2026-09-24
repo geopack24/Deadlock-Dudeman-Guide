@@ -31,6 +31,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $BIN  = '6ab518a3ffd5d160532a5ec9'
+$API  = if ($env:DUDELOCK_API) { $env:DUDELOCK_API } else { 'https://api.jsonbin.io/v3/b' }   # override only for local testing
 $KEY  = '$2a$10$xN0NFn7iLT2QLN3kjweAZOo5K77sve8wvXkOJ3JnALA9bmbYScUMS'   # same key the site already ships in its source
 $VER  = 'watcher 1.2'
 $DebugFile = Join-Path $PSScriptRoot 'lobby-debug.txt'
@@ -103,8 +104,8 @@ function ReadFeed {
   # the feed is one record holding a slot per person: { v:2, lobbies: { "<who>": payload } }
   try {
     $curl = CurlExe
-    if ($curl) { $raw = & $curl.Source -s -m 20 "https://api.jsonbin.io/v3/b/$BIN/latest" 2>$null }
-    else { $raw = (Invoke-WebRequest -UseBasicParsing -Uri "https://api.jsonbin.io/v3/b/$BIN/latest" -TimeoutSec 30).Content }
+    if ($curl) { $raw = & $curl.Source -s -m 20 "$API/$BIN/latest" 2>$null }
+    else { $raw = (Invoke-WebRequest -UseBasicParsing -Uri "$API/$BIN/latest" -TimeoutSec 30).Content }
     if (-not $raw) { return $null }
     $rec = ($raw | ConvertFrom-Json).record
     $lob = @{}
@@ -126,12 +127,12 @@ function PublishNow {
   if ($curl) {
     $tmp = Join-Path $env:TEMP 'dudelock-lobby.json'
     [IO.File]::WriteAllText($tmp, $json, (New-Object Text.UTF8Encoding($false)))
-    $code = & $curl.Source -s -m 20 -X PUT "https://api.jsonbin.io/v3/b/$BIN" -H 'Content-Type: application/json' -H "X-Master-Key: $KEY" --data-binary "@$tmp" -o NUL -w '%{http_code}' 2>$null
+    $code = & $curl.Source -s -m 20 -X PUT "$API/$BIN" -H 'Content-Type: application/json' -H "X-Master-Key: $KEY" --data-binary "@$tmp" -o NUL -w '%{http_code}' 2>$null
     if ("$code" -eq '200') { $ok = $true } else { $err = "curl http $code" }
   }
   if (-not $ok) {
     try {
-      Invoke-RestMethod -UseBasicParsing -Method Put -Uri "https://api.jsonbin.io/v3/b/$BIN" -ContentType 'application/json' -Headers @{ 'X-Master-Key'=$KEY } -Body ([Text.Encoding]::UTF8.GetBytes($json)) -TimeoutSec 30 | Out-Null
+      Invoke-RestMethod -UseBasicParsing -Method Put -Uri "$API/$BIN" -ContentType 'application/json' -Headers @{ 'X-Master-Key'=$KEY } -Body ([Text.Encoding]::UTF8.GetBytes($json)) -TimeoutSec 30 | Out-Null
       $ok = $true
     } catch { $err = ($err + ' / ' + $_.Exception.Message).Trim(' /') }
   }
