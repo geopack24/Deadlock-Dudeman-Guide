@@ -63,12 +63,29 @@ Write-Host "       $($txt.Count) lines"
 # ---- find where the most recent match started, so we can judge TIMING ----
 $startIdx = 0
 for ($i = $txt.Count - 1; $i -ge 0; $i--) {
-  if ($txt[$i] -match 'Precaching \d+ heroes|Lobby \d+ for Match \d+ created|CL: Connected to') { $startIdx = $i; break }
+  if ($txt[$i] -match 'Precaching \d+ heroes|Lobby \d+ for Match \d+ created|\[Client\] Map: "') { $startIdx = $i; break }
 }
 if ($startIdx -gt 0) {
   Write-Host ''
   Write-Host ("  Most recent match-start marker at line {0}:" -f $startIdx) -ForegroundColor Green
   Note ($txt[$startIdx].Trim() -replace '\s+',' ')
+}
+
+# ---- which map was the last session on? hideout/sandbox logs prove nothing ----
+$maps = $txt | Select-String -Pattern '\[Client\] Map: "([^"]+)"'
+$players = $txt | Select-String -Pattern '\[Client\] Players: (\d+) \((\d+) bots\) / (\d+) humans'
+if ($maps) {
+  $lastMap = $maps[-1].Matches[0].Groups[1].Value
+  Write-Host ''
+  Write-Host ("  Last map loaded: {0}" -f $lastMap) -ForegroundColor Green
+  if ($players) { Note ($players[-1].Line.Trim() -replace '.*\[Client\] ','') }
+  if ($lastMap -match 'hideout|sandbox|tutorial|test|lab') {
+    Write-Host ''
+    Write-Host '  >>> THIS LOG IS FROM THE HIDEOUT / SANDBOX, NOT A REAL MATCH. <<<' -ForegroundColor Red
+    Note 'Hero names below are just the hideout display characters and bots.'
+    Note 'Queue a real match (any mode with 12 players), then run this again -'
+    Note 'ideally while still in the match, or right after it ends.'
+  }
 }
 
 # ---- hero names, BOTH forms ----
